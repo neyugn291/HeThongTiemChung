@@ -51,3 +51,39 @@ class Vaccine(BaseModel):
     def __str__(self):
         return self.name
 
+class InjectionSite(BaseModel):
+    name = models.CharField(max_length=100)
+    address = models.TextField()
+    phone = models.CharField(max_length=15, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+class InjectionSchedule(BaseModel):
+    vaccine = models.ForeignKey(Vaccine, on_delete=models.CASCADE)
+    site = models.ForeignKey(InjectionSite, on_delete=models.CASCADE)
+    date = models.DateField()
+    slot_count = models.PositiveIntegerField(default=100)
+
+    def __str__(self):
+        return f"{self.vaccine.name} - {self.date}"
+
+
+class Appointment(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(InjectionSchedule, on_delete=models.CASCADE)
+    registered_at = models.DateTimeField(auto_now_add=True)
+    is_confirmed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.schedule}"
+
+class VaccinationRecord(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    vaccine = models.ForeignKey(Vaccine, on_delete=models.SET_NULL, null=True)
+    dose_number = models.PositiveIntegerField()
+    injection_date = models.DateField()
+    site = models.ForeignKey(InjectionSite, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.vaccine.name} - Dose {self.dose_number}"
