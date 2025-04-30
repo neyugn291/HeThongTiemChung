@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'AppTiemChung.apps.ApptiemchungConfig',
     'rest_framework',
+    'ckeditor',
+    'ckeditor_uploader'
 ]
 
 MIDDLEWARE = [
@@ -83,6 +85,9 @@ DATABASES = {
         'HOST': '' # mặc định localhost
     }
 }
+CKEDITOR_UPLOAD_PATH = "static/descriptions/"
+
+MEDIA_ROOT = '%s/AppTiemChung/static/' % BASE_DIR
 
 AUTH_USER_MODEL = 'AppTiemChung.User'
 

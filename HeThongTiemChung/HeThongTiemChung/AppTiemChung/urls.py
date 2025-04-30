@@ -10,5 +10,7 @@ router = routers.DefaultRouter()
 router.register(r'vaccines', views.VaccineViewSet)
 
 urlpatterns = [
-path('', include(router.urls))
+    path('', include(router.urls)),
 ]
+
+
