@@ -35,18 +35,22 @@ class Vaccine(BaseModel):
         EXPIRED = 'Expired', _('Da het han')
 
     name = models.CharField(max_length=100,verbose_name=_('Ten Vaccine'))
+    image = models.ImageField(upload_to='vaccines',blank=True, null=True)
     vaccine_type = models.ForeignKey(VaccineType, on_delete=models.CASCADE,default=get_default_vaccine_type)
     manufacturer = models.CharField(max_length=100, blank=True, null=True)
-    dose_count = models.IntegerField(default=1)
+    dose_count = models.IntegerField(default=10000)
     dose_interval = models.CharField(max_length=50, blank=True, null=True)
     age_group = models.CharField(max_length=50, blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(null=True, blank=True)
     approved_date = models.DateField(blank=True, null=True)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
         default=Status.ACTIVE
     )
+
+    class Meta:
+        unique_together = (('name', 'vaccine_type'),)
 
     def __str__(self):
         return self.name
