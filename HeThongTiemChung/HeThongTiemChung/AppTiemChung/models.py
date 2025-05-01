@@ -3,6 +3,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.db import models
 from cloudinary.models import CloudinaryField
+from ckeditor.fields import RichTextField
 
 
 # Create your models here.
@@ -41,7 +42,7 @@ class Vaccine(BaseModel):
     dose_count = models.IntegerField(default=10000)
     dose_interval = models.CharField(max_length=50, blank=True, null=True)
     age_group = models.CharField(max_length=50, blank=True, null=True)
-    description = models.TextField(null=True, blank=True)
+    description = RichTextField(blank=True, null=True)
     approved_date = models.DateField(blank=True, null=True)
     status = models.CharField(
         max_length=20,
