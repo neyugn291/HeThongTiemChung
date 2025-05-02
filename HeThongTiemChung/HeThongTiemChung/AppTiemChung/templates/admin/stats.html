@@ -1,0 +1,10 @@
+{% extends 'admin/base_site.html' %}
+
+{% block content %}
+<h1>THỐNG KÊ VẮC XIN</h1>
+<ul>
+    {% for s in stats %}
+        <li><strong>{{s.name}}</strong>: {{s.count}}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
