@@ -1,4 +1,5 @@
 from rest_framework.serializers import ModelSerializer
+
 from .models import Vaccine, User
 
 class VaccineSerializer(ModelSerializer):

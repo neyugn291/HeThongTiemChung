@@ -14,11 +14,14 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+from AppTiemChung.admin import admin_site
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -45,4 +48,15 @@ urlpatterns = [
         name='schema-redoc'),
     path('o/', include('oauth2_provider.urls',
     namespace='oauth2_provider'))
+    path('', include('AppTiemChung.urls')),
+    path('admin/', admin_site.urls),
+    re_path(r'^ckeditor/',
+            include('ckeditor_uploader.urls'))
 ]
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns += [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ]
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
