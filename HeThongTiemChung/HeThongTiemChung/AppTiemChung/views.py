@@ -1,18 +1,14 @@
-# Create your views here.
-
+from django.shortcuts import render
 from django.http import HttpResponse
-
 
 def index(request):
     return HttpResponse("Vaccination App")
-
 
 from rest_framework import viewsets, permissions, generics, parsers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Vaccine, User
 from AppTiemChung import serializers
-
 
 class VaccineViewSet(viewsets.ModelViewSet):
     queryset = Vaccine.objects.filter(active=True)
