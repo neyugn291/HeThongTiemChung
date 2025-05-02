@@ -15,7 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -26,7 +25,6 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -39,7 +37,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'AppTiemChung.apps.ApptiemchungConfig',
     'rest_framework',
+    'drf_yasg',  # swagger
+    'oauth2_provider'
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    )
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -70,17 +76,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'HeThongTiemChung.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default':  {
+    'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'vaccinationappdb',
         'USER': 'root',
-        'PASSWORD': 'Demo@123',
-        'HOST': '' # mặc định localhost
+        'PASSWORD': 'Abc123',
+        'HOST': ''  # mặc định localhost
     }
 }
 
@@ -89,15 +94,13 @@ AUTH_USER_MODEL = 'AppTiemChung.User'
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
-import cloudinary
 import cloudinary.uploader
-from cloudinary.utils import cloudinary_url
 
 cloudinary.config(
-    cloud_name = 'dzbkb9zaz',
-    api_key = '724746361173255',
-    api_secret = 'k9alhYT3EfV1FX_XOZf9r0LN1P8',
-    secure = True
+    cloud_name='dzbkb9zaz',
+    api_key='724746361173255',
+    api_secret='k9alhYT3EfV1FX_XOZf9r0LN1P8',
+    secure=True
 )
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -115,7 +118,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -126,7 +128,6 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
