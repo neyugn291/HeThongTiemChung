@@ -1,115 +1,210 @@
-import { Image, ScrollView, TouchableOpacity, View } from "react-native";
-import { Button, HelperText, Text, TextInput } from "react-native-paper";
-// import MyStyles from "../../styles/MyStyles";
-// import { useState } from "react";
-// import * as ImagePicker from 'expo-image-picker';
-// import Apis, { endpoints } from "../../configs/Apis";
-// import { useNavigation } from "@react-navigation/native";
+import React, { useState } from "react";
+import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet } from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons"; // Dùng MaterialCommunityIcons cho icon "eye" và "camera"
 
-const Register = () => {
-//     const info = [{
-//         label: "Tên",
-//         field: "first_name",
-//         secureTextEntry: false,
-//         icon: "text"
-//     }, {
-//         label: "Họ và tên lót",
-//         field: "last_name",
-//         secureTextEntry: false,
-//         icon: "text"
-//     }, {
-//         label: "Tên đăng nhập",
-//         field: "username",
-//         secureTextEntry: false,
-//         icon: "text"
-//     }, {
-//         label: "Mật khẩu",
-//         field: "password",
-//         secureTextEntry: true,
-//         icon: "eye"
-//     }, {
-//         label: "Xác nhận mật khẩu",
-//         field: "confirm",
-//         secureTextEntry: true,
-//         icon: "eye"
-//     }];
+const Register = ({ navigation }) => {
+  const [showPassword, setShowPassword] = useState(true);
+  const [showRepeatPassword, setShowRepeatPassword] = useState(true);
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
+  const [avatar, setAvatar] = useState(null); // State để lưu ảnh đại diện
 
-//     const [user, setUser] = useState({});
-//     const [msg, setMsg] = useState(null);
-//     const [loading, setLoading] = useState(false);
-//     const nav = useNavigation();
+  // Hàm xử lý chọn ảnh (cần tích hợp thư viện như react-native-image-picker)
+  const handleChooseAvatar = () => {
+    // Logic chọn ảnh (ví dụ: sử dụng react-native-image-picker)
+    // setAvatar(selectedImage);
+  };
 
-//     const setState = (value, field) => {
-//         setUser({...user, [field]: value});
-//     }
+  return (
+    <View style={myStyles.container}>
+      <View style={myStyles.card}>
+        <Image
+          source={require("../../assets/VNMA.png")}
+          style={myStyles.logo}
+          resizeMode="contain"
+        />
 
-//     const pick = async () => {
-//         let { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        <Text style={myStyles.title}>Đăng ký VNMA</Text>
 
-//         if (status !== 'granted') {
-//             alert("Permissions denied!");
-//         } else {
-//             const result = await ImagePicker.launchImageLibraryAsync();
+        <TouchableOpacity onPress={handleChooseAvatar} style={myStyles.avatarContainer}>
+          <Icon
+            name="camera"
+            size={30}
+            color="#999"
+          />
+          <Text style={myStyles.avatarText}>Chọn ảnh đại diện</Text>
+        </TouchableOpacity>
 
-//             if (!result.canceled) {
-//                 setState(result.assets[0], "avatar");
-//             }
-//         }
-//     }
+        <TextInput
+          style={myStyles.input}
+          placeholder="Email hoặc số điện thoại"
+          placeholderTextColor="#999"
+          value={email}
+          onChangeText={setEmail}
+        />
 
-//     const validate = () => {
-//         for (let i of info)
-//             if (!(i.field in user)  || user[i.field] === '') {
-//                 setMsg(`Vui lòng nhập ${i.label}!`);
-//                 return false;
-//             }
+        <TextInput
+          style={myStyles.input}
+          placeholder="Tên đăng nhập"
+          placeholderTextColor="#999"
+          value={username}
+          onChangeText={setUsername}
+        />
 
-//         if (user.password !== user.confirm) {
-//             setMsg("Mật khẩu không khớp!");
-//             return false;
-//         }
+        <View style={myStyles.passwordContainer}>
+          <TextInput
+            style={myStyles.passwordInput}
+            placeholder="Mật khẩu"
+            placeholderTextColor="#999"
+            secureTextEntry={showPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Icon
+              name={showPassword ? "eye-off" : "eye"}
+              size={20}
+              color="#999"
+            />
+          </TouchableOpacity>
+        </View>
 
-//         return true;
-//     }
+        <View style={myStyles.passwordContainer}>
+          <TextInput
+            style={myStyles.passwordInput}
+            placeholder="Xác nhận mật khẩu"
+            placeholderTextColor="#999"
+            secureTextEntry={showRepeatPassword}
+            value={repeatPassword}
+            onChangeText={setRepeatPassword}
+          />
+          <TouchableOpacity onPress={() => setShowRepeatPassword(!showRepeatPassword)}>
+            <Icon
+              name={showRepeatPassword ? "eye-off" : "eye"}
+              size={20}
+              color="#999"
+            />
+          </TouchableOpacity>
+        </View>
 
-//     const register = async () => {
-//         if (validate() === true) {
-//             try {
-//                 setLoading(true);
+        <TouchableOpacity style={myStyles.loginBtn}>
+          <Text style={myStyles.loginText}>Đăng ký</Text>
+        </TouchableOpacity>
 
-//                 let form = new FormData();
-//                 for (let key in user)
-//                     if (key !== 'confirm') {
-//                         if (key === 'avatar') {
-//                             form.append(key, {
-//                                 uri: user.avatar.uri,
-//                                 name: user.avatar.fileName,
-//                                 type: user.avatar.type
-//                             })
-//                         } else
-//                             form.append(key, user[key]);
-//                     }
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text style={myStyles.link}>Đã có tài khoản? Đăng nhập</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
-//                 await Apis.post(endpoints['register'], form, {
-//                     headers: {
-//                         'Content-Type': 'multipart/form-data'
-//                     }
-//                 });
-//                 nav.navigate('login');
-//             } catch(ex) {
-//                 console.error(ex);
-//             } finally {
-//                 setLoading(false);
-//             }
-//         }
-//     }
-
-    return (
-        <ScrollView>
-            <Text variant="titleLarge">Đăng ký</Text>
-            {/* Thêm các TextInput và Button ở đây */}
-        </ScrollView>
-    );}
-
+const myStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#6a97a4",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  card: {
+    width: "80%",
+    backgroundColor: "#f8dad0",
+    borderRadius: 20,
+    padding: 30,
+    alignItems: "center",
+    position: "relative",
+    shadowColor: "#021b42",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.7,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  logo: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    opacity: 0.1,
+    marginTop: "20",
+    zIndex: 0,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#174171",
+    marginBottom: 20,
+    zIndex: 1,
+  },
+  input: {
+    width: "100%",
+    height: 45,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+    zIndex: 1,
+  },
+  passwordContainer: {
+    width: "100%",
+    height: 45,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+    zIndex: 1,
+  },
+  passwordInput: {
+    flex: 1,
+    height: "100%",
+    color: "#000",
+  },
+  loginBtn: {
+    width: "100%",
+    height: 45,
+    backgroundColor: "#6a87a4",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    margin: 10,
+    zIndex: 1,
+  },
+  loginText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  link: {
+    color: "#174171",
+    fontSize: 15,
+    margin: 4,
+    zIndex: 1,
+  },
+  avatarContainer: {
+    width: "100%",
+    height: 60,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+    zIndex: 1,
+    justifyContent: "center",
+  },
+  avatarText: {
+    marginLeft: 10,
+    color: "#999",
+    fontSize: 16,
+  },
+});
 
 export default Register;
