@@ -1,74 +1,36 @@
-import React from "react";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import React, { useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+// Import các màn hình
 import Home from "./components/Home/Home";
 import Login from "./components/User/Login";
 import Register from "./components/User/Register";
 
-// Tạo stack navigator cho các màn hình liên quan đến người dùng
-const UserStack = createNativeStackNavigator();
-const UserStackNavigator = () => {
-  return (
-    <UserStack.Navigator>
-      <UserStack.Screen 
-        name="login" 
-        component={Login} 
-        options={{ title: 'Đăng nhập' }} 
-      />
-      <UserStack.Screen 
-        name="register" 
-        component={Register} 
-        options={{ title: 'Đăng ký' }} 
-      />
-    </UserStack.Navigator>
-  );
-};
+// Stack chính của ứng dụng
+const Stack = createNativeStackNavigator();
 
-// Tạo stack navigator chính
-const MainStack = createNativeStackNavigator();
-const MainStackNavigator = () => {
-  return (
-    <MainStack.Navigator>
-      <MainStack.Screen 
-        name="home" 
-        component={Home} 
-        options={{ title: 'Màn hình chính' }} 
-      />
-    </MainStack.Navigator>
-  );
-};
-
-// Tạo bottom tab navigator
+// Bottom tab navigator (sau khi đăng nhập)
 const Tab = createBottomTabNavigator();
-const TabNavigator = () => {
+
+const MainApp = () => {
   return (
-    <Tab.Navigator 
-      screenOptions={{ 
+    <Tab.Navigator
+      screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#3b82f6',
         tabBarInactiveTintColor: '#64748b',
       }}
     >
       <Tab.Screen
-        name="main"
-        component={MainStackNavigator}
+        name="home"
+        component={Home}
         options={{
           title: "Trang chủ",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="user"
-        component={UserStackNavigator}
-        options={{
-          title: 'Tài khoản',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" color={color} size={size} />
           ),
         }}
       />
@@ -77,9 +39,22 @@ const TabNavigator = () => {
 };
 
 const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   return (
     <NavigationContainer>
-      <TabNavigator />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!isLoggedIn ? (
+          <>
+            <Stack.Screen name="Login">
+              {(props) => <Login {...props} onLogin={() => setIsLoggedIn(true)} />}
+            </Stack.Screen>
+            <Stack.Screen name="Register" component={Register} />
+          </>
+        ) : (
+          <Stack.Screen name="MainApp" component={MainApp} />
+        )}
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };
