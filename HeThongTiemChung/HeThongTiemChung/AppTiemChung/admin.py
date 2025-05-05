@@ -16,6 +16,7 @@ from AppTiemChung import dao
 class AppTiemChungAdminSite(admin.AdminSite):
     site_header = 'He Thong Tiem Chung'
 
+
     def get_urls(self):
         return [
             path('vaccine-stats/', self.stats_view)

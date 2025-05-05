@@ -1,11 +1,12 @@
 from rest_framework.serializers import ModelSerializer
 
-from .models import Vaccine, User
+from .models import Vaccine, User, Appointment
 
 class VaccineSerializer(ModelSerializer):
     class Meta:
         model = Vaccine
         fields = ['id', 'name']
+
 
 class UserSerializer(ModelSerializer):
     def to_representation(self, instance):
@@ -31,3 +32,10 @@ class UserSerializer(ModelSerializer):
                 'write_only': True
             }
         }
+
+class AppointmentSerializer(ModelSerializer):
+    class Meta:
+        model = Appointment
+        fields = '__all__'
+        read_only_fields = ('created_at', 'user')
+
