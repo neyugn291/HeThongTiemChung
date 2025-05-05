@@ -95,7 +95,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'vaccinationappdb',
         'USER': 'root',
-        'PASSWORD': 'Abc123',
+        'PASSWORD': 'Demo@123',
         'HOST': ''  # mặc định localhost
     }
 }
@@ -103,7 +103,6 @@ DATABASES = {
 INTERNAL_IPS = [
  '192.168.1.5', # Runserver IP Lan máy tính + port
  ]
-
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
