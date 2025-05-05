@@ -1,11 +1,72 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet } from "react-native";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons"; // Dùng MaterialCommunityIcons cho icon "eye"
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Apis, { authApis, endpoints } from "../../configs/Apis"; // Giả sử bạn đã có cấu hình API
+import { MyDispatchContext } from "../../configs/MyContexts"; // Context để dispatch trạng thái đăng nhập
+import { useNavigation } from "@react-navigation/native";
 
-const Login = ({navigation}) => {
+const Login = () => {
   const [showPassword, setShowPassword] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState(null); // Thông báo lỗi
+  const [loading, setLoading] = useState(false); // Trạng thái tải
+  const dispatch = useContext(MyDispatchContext);
+  const navigation = useNavigation();
+
+  // Kiểm tra dữ liệu đầu vào
+  const validate = () => {
+    if (!username) {
+      setError("Vui lòng nhập tên đăng nhập!");
+      return false;
+    }
+    if (!password) {
+      setError("Vui lòng nhập mật khẩu!");
+      return false;
+    }
+    return true;
+  };
+
+  // Hàm xử lý đăng nhập
+  const handleLogin = async () => {
+    if (!validate()) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Gửi yêu cầu đăng nhập tới endpoint OAuth2
+      const res = await Apis.post(endpoints["login"], {
+        username,
+        password,
+        client_id: "kcsDgyInFIBjIlb3evqzpyNFJ59gCNtdNqnpbqDY",
+        client_secret: "jvYbMZ8XQ9nxn8mZc7FDiVb8JFWFxuzYQHdYdp5yqhun7gux705RCR0lScOfiUgDY8thrtJV5d5Rk3QdDKXGfwk3xLECgACUxdHAfEM5KdGSXQhUQMkftOeldAULJXAE",
+        grant_type: "password",
+      });
+
+      // Lưu access_token vào AsyncStorage
+      await AsyncStorage.setItem("token", res.data.access_token);
+
+      // Lấy thông tin người dùng
+      const userData = await authApis(res.data.access_token).get(
+        endpoints["currentUser"]
+      );
+
+      // Dispatch trạng thái đăng nhập
+      dispatch({
+        type: "login",
+        payload: userData.data,
+      });
+
+      // Điều hướng tới màn hình home
+      navigation.navigate("Home");
+    } catch (ex) {
+      setError("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={myStyles.container}>
@@ -17,6 +78,8 @@ const Login = ({navigation}) => {
         />
 
         <Text style={myStyles.title}>Đăng nhập VNMA</Text>
+
+        {error && <Text style={myStyles.errorText}>{error}</Text>}
 
         <TextInput
           style={myStyles.input}
@@ -44,13 +107,21 @@ const Login = ({navigation}) => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={myStyles.loginBtn}>
-          <Text style={myStyles.loginText}>Đăng nhập</Text>
+        <TouchableOpacity
+          style={[myStyles.loginBtn, loading && myStyles.disabledBtn]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={myStyles.loginText}>
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+          </Text>
         </TouchableOpacity>
 
         <Text style={myStyles.link}>Quên mật khẩu</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={myStyles.link}>Tạo tài khoản mới</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Register")}
+        >
+          <Text style={myStyles.link}>Tạo tài khoản mới</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -131,6 +202,9 @@ const myStyles = StyleSheet.create({
     margin: 10,
     zIndex: 1,
   },
+  disabledBtn: {
+    backgroundColor: "#a0a0a0", // Màu khi nút bị vô hiệu hóa
+  },
   loginText: {
     color: "#fff",
     fontWeight: "bold",
@@ -140,6 +214,12 @@ const myStyles = StyleSheet.create({
     color: "#174171",
     fontSize: 15,
     margin: 4,
+    zIndex: 1,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    marginBottom: 10,
     zIndex: 1,
   },
 });

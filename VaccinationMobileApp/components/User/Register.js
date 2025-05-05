@@ -1,98 +1,151 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet } from "react-native";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons"; // Dùng MaterialCommunityIcons cho icon "eye" và "camera"
+import React, { useState, useContext } from "react";
+import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import * as ImagePicker from "expo-image-picker";
+import Apis, { endpoints } from "../../configs/Apis";
+import { MyDispatchContext } from "../../configs/MyContexts";
 
 const Register = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(true);
   const [showRepeatPassword, setShowRepeatPassword] = useState(true);
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [repeatPassword, setRepeatPassword] = useState("");
-  const [avatar, setAvatar] = useState(null); // State để lưu ảnh đại diện
+  const [user, setUser] = useState({});
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const dispatch = useContext(MyDispatchContext);
 
-  // Hàm xử lý chọn ảnh (cần tích hợp thư viện như react-native-image-picker)
-  const handleChooseAvatar = () => {
-    // Logic chọn ảnh (ví dụ: sử dụng react-native-image-picker)
-    // setAvatar(selectedImage);
+  const setState = (value, field) => {
+    setUser({ ...user, [field]: value });
+  };
+
+  const handleChooseAvatar = async () => {
+    let { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      setError("Quyền truy cập thư viện ảnh bị từ chối!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setState(result.assets[0], "avatar");
+    }
+  };
+
+  const validate = () => {
+    const requiredFields = ["email", "username", "password", "confirm"];
+    for (let field of requiredFields) {
+      if (!(field in user) || user[field] === "") {
+        setError(`Vui lòng nhập ${field === "confirm" ? "xác nhận mật khẩu" : field}!`);
+        return false;
+      }
+    }
+
+    if (user.password !== user.confirm) {
+      setError("Mật khẩu không khớp!");
+      return false;
+    }
+
+    return true;
+  };
+
+  const register = async () => {
+    if (!validate()) return;
+  
+    try {
+      setLoading(true);
+      setError(null);
+  
+      let form = new FormData();
+      if (user.email) form.append("email", user.email);
+      if (user.username) form.append("username", user.username);
+      if (user.password) form.append("password", user.password);
+      if (user.avatar) {
+        form.append("avatar", {
+          uri: user.avatar.uri,
+          name: user.avatar.fileName || `avatar_${Date.now()}.jpg`,
+          type: user.avatar.type || "image/jpeg",
+        });
+      }
+  
+      const response = await Apis.post(endpoints["register"], form, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      const { message } = response.data;
+      Alert.alert("Thành công", message);
+      navigation.navigate("Login");
+    } catch (ex) {
+      setError("Đã xảy ra lỗi trong quá trình đăng ký! Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <View style={myStyles.container}>
       <View style={myStyles.card}>
-        <Image
-          source={require("../../assets/VNMA.png")}
-          style={myStyles.logo}
-          resizeMode="contain"
-        />
-
+        <Image source={require("../../assets/VNMA.png")} style={myStyles.logo} resizeMode="contain" />
         <Text style={myStyles.title}>Đăng ký VNMA</Text>
-
-        <TouchableOpacity onPress={handleChooseAvatar} style={myStyles.avatarContainer}>
-          <Icon
-            name="camera"
-            size={30}
-            color="#999"
-          />
-          <Text style={myStyles.avatarText}>Chọn ảnh đại diện</Text>
+        {error && <Text style={myStyles.errorText}>{error}</Text>}
+        <TouchableOpacity onPress={handleChooseAvatar} style={myStyles.avatarCircle}>
+          {user.avatar ? (
+            <Image source={{ uri: user.avatar.uri }} style={myStyles.avatarImage} />
+          ) : (
+            <Icon name="camera" size={30} color="#999" />
+          )}
         </TouchableOpacity>
-
         <TextInput
           style={myStyles.input}
-          placeholder="Email hoặc số điện thoại"
+          placeholder="Email"
           placeholderTextColor="#999"
-          value={email}
-          onChangeText={setEmail}
+          value={user.email || ""}
+          onChangeText={(text) => setState(text, "email")}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
-
         <TextInput
           style={myStyles.input}
           placeholder="Tên đăng nhập"
           placeholderTextColor="#999"
-          value={username}
-          onChangeText={setUsername}
+          value={user.username || ""}
+          onChangeText={(text) => setState(text, "username")}
+          autoCapitalize="none"
         />
-
         <View style={myStyles.passwordContainer}>
           <TextInput
             style={myStyles.passwordInput}
             placeholder="Mật khẩu"
             placeholderTextColor="#999"
             secureTextEntry={showPassword}
-            value={password}
-            onChangeText={setPassword}
+            value={user.password || ""}
+            onChangeText={(text) => setState(text, "password")}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Icon
-              name={showPassword ? "eye-off" : "eye"}
-              size={20}
-              color="#999"
-            />
+            <Icon name={showPassword ? "eye-off" : "eye"} size={20} color="#999" />
           </TouchableOpacity>
         </View>
-
         <View style={myStyles.passwordContainer}>
           <TextInput
             style={myStyles.passwordInput}
             placeholder="Xác nhận mật khẩu"
             placeholderTextColor="#999"
             secureTextEntry={showRepeatPassword}
-            value={repeatPassword}
-            onChangeText={setRepeatPassword}
+            value={user.confirm || ""}
+            onChangeText={(text) => setState(text, "confirm")}
           />
           <TouchableOpacity onPress={() => setShowRepeatPassword(!showRepeatPassword)}>
-            <Icon
-              name={showRepeatPassword ? "eye-off" : "eye"}
-              size={20}
-              color="#999"
-            />
+            <Icon name={showRepeatPassword ? "eye-off" : "eye"} size={20} color="#999" />
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={myStyles.loginBtn}>
-          <Text style={myStyles.loginText}>Đăng ký</Text>
+        <TouchableOpacity style={myStyles.loginBtn} onPress={register} disabled={loading}>
+          <Text style={myStyles.loginText}>{loading ? "Đang xử lý..." : "Đăng ký"}</Text>
         </TouchableOpacity>
-
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
           <Text style={myStyles.link}>Đã có tài khoản? Đăng nhập</Text>
         </TouchableOpacity>
@@ -102,12 +155,7 @@ const Register = ({ navigation }) => {
 };
 
 const myStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#6a97a4",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, backgroundColor: "#6a97a4", justifyContent: "center", alignItems: "center" },
   card: {
     width: "80%",
     backgroundColor: "#f8dad0",
@@ -129,13 +177,7 @@ const myStyles = StyleSheet.create({
     marginTop: "20",
     zIndex: 0,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#174171",
-    marginBottom: 20,
-    zIndex: 1,
-  },
+  title: { fontSize: 20, fontWeight: "bold", color: "#174171", marginBottom: 20, zIndex: 1 },
   input: {
     width: "100%",
     height: 45,
@@ -160,11 +202,7 @@ const myStyles = StyleSheet.create({
     backgroundColor: "#fff",
     zIndex: 1,
   },
-  passwordInput: {
-    flex: 1,
-    height: "100%",
-    color: "#000",
-  },
+  passwordInput: { flex: 1, height: "100%", color: "#000" },
   loginBtn: {
     width: "100%",
     height: 45,
@@ -175,36 +213,22 @@ const myStyles = StyleSheet.create({
     margin: 10,
     zIndex: 1,
   },
-  loginText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
-  },
-  link: {
-    color: "#174171",
-    fontSize: 15,
-    margin: 4,
-    zIndex: 1,
-  },
-  avatarContainer: {
-    width: "100%",
-    height: 60,
+  loginText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
+  link: { color: "#174171", fontSize: 15, margin: 4, zIndex: 1 },
+  avatarCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    marginBottom: 15,
-    backgroundColor: "#fff",
-    zIndex: 1,
     justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    zIndex: 1,
   },
-  avatarText: {
-    marginLeft: 10,
-    color: "#999",
-    fontSize: 16,
-  },
+  avatarImage: { width: 80, height: 80, borderRadius: 40 },
+  errorText: { color: "red", marginBottom: 10, zIndex: 1 },
 });
 
 export default Register;
