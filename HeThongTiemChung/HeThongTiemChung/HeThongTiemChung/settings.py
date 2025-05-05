@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'AppTiemChung.apps.ApptiemchungConfig',
     'rest_framework',
     'drf_yasg',  # swagger
-    'oauth2_provider'
+    'oauth2_provider',
     'ckeditor',
     'ckeditor_uploader',
     'debug_toolbar'
@@ -89,7 +89,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'vaccinationappdb',
         'USER': 'root',
-        'PASSWORD': 'Abc123',
+        'PASSWORD': 'Demo@123',
         'HOST': ''  # mặc định localhost
     }
 }
@@ -99,7 +99,6 @@ INTERNAL_IPS = [
     "127.0.0.1",
     # ...
 ]
-
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
