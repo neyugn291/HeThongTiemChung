@@ -8,7 +8,7 @@ from ckeditor.fields import RichTextField
 
 # Create your models here.
 class User(AbstractUser):
-    citizen_id = models.CharField(max_length=12, verbose_name='CCCD', unique=True, default=0)
+    citizen_id = models.CharField(max_length=12, verbose_name='CCCD', unique=True, null=True)
     avatar = CloudinaryField(null=True)
 
 class BaseModel(models.Model):

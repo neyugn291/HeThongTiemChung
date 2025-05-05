@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.1.5'] # Runserver IP Lan máy tính + port
 
 # Application definition
 
@@ -39,10 +39,11 @@ INSTALLED_APPS = [
     'AppTiemChung.apps.ApptiemchungConfig',
     'rest_framework',
     'drf_yasg',  # swagger
-    'oauth2_provider'
+    'oauth2_provider',
     'ckeditor',
     'ckeditor_uploader',
-    'debug_toolbar'
+    'debug_toolbar',
+    'corsheaders'
 ]
 
 REST_FRAMEWORK = {
@@ -60,6 +61,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "debug_toolbar.middleware.DebugToolbarMiddleware",
+    'corsheaders.middleware.CorsMiddleware'
+]
+
+CORS_ALLOWED_ORIGINS = [
+
 ]
 
 ROOT_URLCONF = 'HeThongTiemChung.urls'
@@ -95,10 +101,8 @@ DATABASES = {
 }
 
 INTERNAL_IPS = [
-    # ...
-    "127.0.0.1",
-    # ...
-]
+ '192.168.1.5', # Runserver IP Lan máy tính + port
+ ]
 
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
@@ -157,3 +161,6 @@ MEDIA_URL = '/media/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CLIENT_ID = 'kcsDgyInFIBjIlb3evqzpyNFJ59gCNtdNqnpbqDY'
+CLIENT_SECRET = 'jvYbMZ8XQ9nxn8mZc7FDiVb8JFWFxuzYQHdYdp5yqhun7gux705RCR0lScOfiUgDY8thrtJV5d5Rk3QdDKXGfwk3xLECgACUxdHAfEM5KdGSXQhUQMkftOeldAULJXAE'
