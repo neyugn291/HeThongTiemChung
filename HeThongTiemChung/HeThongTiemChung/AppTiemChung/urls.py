@@ -5,6 +5,8 @@ from . import views
 router = DefaultRouter()
 router.register('vaccines', views.VaccineViewSet)
 router.register('users', views.UserViewSet)
+router.register('appointment', views.AppointmentViewSet, basename='appointment')
+router.register('appointments', views.AppointmentAdminViewSet, basename='appointments')
 
 urlpatterns = [
     path('', include(router.urls)),  # Bao gồm tất cả các URL từ router
