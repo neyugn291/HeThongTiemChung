@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.template.response import TemplateResponse
+from django.contrib.auth.admin import UserAdmin
 
 from .models import Vaccine, VaccineType, User, InjectionSite, InjectionSchedule, VaccinationRecord, Appointment
 from django.utils.html import mark_safe
@@ -50,10 +51,18 @@ class VaccineAdmin(admin.ModelAdmin):
 
     image_preview.short_description = 'Preview'
 
-# Register your models here.
+class MyUserAdmin(UserAdmin):
+    list_display = ['id', 'username', 'email', 'is_active', 'is_staff', 'avatar']
+    list_filter = [ 'is_active']
+    search_fields = ['username', 'email']
+    ordering = ['id']
+
+    # fieldsets = UserAdmin.fieldsets + (
+    #     ('Thông tin bổ sung', {'fields': ('role', 'avatar')}),
+    # )
 
 
-admin_site.register(User)
+admin_site.register(User, MyUserAdmin)
 
 admin_site.register(InjectionSite)
 admin_site.register(InjectionSchedule)

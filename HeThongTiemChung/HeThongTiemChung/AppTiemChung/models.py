@@ -4,13 +4,10 @@ from django.utils.translation import gettext_lazy as _
 from django.db import models
 from cloudinary.models import CloudinaryField
 from ckeditor.fields import RichTextField
-
+import uuid
+from django.utils import timezone
 
 # Create your models here.
-class User(AbstractUser):
-    citizen_id = models.CharField(max_length=12, verbose_name='CCCD', unique=True, null=True)
-    avatar = CloudinaryField(null=True)
-
 class BaseModel(models.Model):
     active = models.BooleanField(default=True)  # Xác định trạng thái kích hoạt
     created_date = models.DateTimeField(auto_now_add=True,null=True)  # Ngày tạo
@@ -18,6 +15,22 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+
+class User(AbstractUser, BaseModel):
+    citizen_id = models.CharField(max_length=12, verbose_name='CCCD', unique=True, null=True)
+
+    email = models.EmailField(unique=True, null=True, blank=True)
+    phone_number = models.CharField(max_length=11, unique=True, null=True, blank=True)
+    avatar = CloudinaryField(null=True)
+    is_verified = models.BooleanField(default=False)  # Xac thuc nguoi dung
+
+    modified_date = models.DateTimeField(default=timezone.now)
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
+
+    def __str__(self):
+        return self.username
 
 class VaccineType(BaseModel):
     name = models.CharField(_('name'), max_length=50, unique=True)
@@ -37,7 +50,7 @@ class Vaccine(BaseModel):
 
     name = models.CharField(max_length=100,verbose_name=_('Ten Vaccine'))
     image = models.ImageField(upload_to='vaccines',blank=True, null=True)
-    vaccine_type = models.ForeignKey(VaccineType, on_delete=models.CASCADE,default=get_default_vaccine_type)
+    vaccine_type = models.ForeignKey(VaccineType, null=True, blank=True, on_delete=models.CASCADE)
     manufacturer = models.CharField(max_length=100, blank=True, null=True)
     dose_count = models.IntegerField(default=10000)
     dose_interval = models.CharField(max_length=50, blank=True, null=True)
