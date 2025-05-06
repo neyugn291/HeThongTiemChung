@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://192.168.1.5:8000/"; // Chạy bằng IP Lan máy tính
+const BASE_URL = "http://127.0.0.1:8000/"; // Chạy bằng IP Lan máy tính
 
 export const endpoints = {
   register: "users/",
