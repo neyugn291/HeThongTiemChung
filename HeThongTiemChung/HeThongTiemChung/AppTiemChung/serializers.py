@@ -10,20 +10,20 @@ class VaccineSerializer(ModelSerializer):
         fields = ['id', 'name']
 
 class UserSerializer(serializers.ModelSerializer):
-    def validate_email(self, value):
-        if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', value):
-            raise serializers.ValidationError("Email không hợp lệ.")
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email này đã được sử dụng!")
-        return value
-
-    def validate_username(self, value):
-        if not re.match(r'^[\w\d_-]{3,20}$', value):
-            raise serializers.ValidationError(
-                "Tên đăng nhập chỉ chứa chữ, số, dấu gạch dưới hoặc gạch ngang, dài 3-20 ký tự.")
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Tên đăng nhập đã được sử dụng!")
-        return value
+    # def validate_email(self, value):
+    #     if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', value):
+    #         raise serializers.ValidationError("Email không hợp lệ.")
+    #     if User.objects.filter(email=value).exists():
+    #         raise serializers.ValidationError("Email này đã được sử dụng!")
+    #     return value
+    #
+    # def validate_username(self, value):
+    #     if not re.match(r'^[\w\d_-]{3,20}$', value):
+    #         raise serializers.ValidationError(
+    #             "Tên đăng nhập chỉ chứa chữ, số, dấu gạch dưới hoặc gạch ngang, dài 3-20 ký tự.")
+    #     if User.objects.filter(username=value).exists():
+    #         raise serializers.ValidationError("Tên đăng nhập đã được sử dụng!")
+    #     return value
 
     def create(self, validated_data):
         data = validated_data.copy()
@@ -39,8 +39,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'username', 'email',
-                  'phone_number', 'password', 'avatar']
+        fields = ['username', 'email', 'password', 'avatar']
         extra_kwargs = {'password': {'write_only': True}}
 
 class AppointmentSerializer(ModelSerializer):

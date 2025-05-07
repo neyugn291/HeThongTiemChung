@@ -83,37 +83,24 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         user_appointments = Appointment.objects.filter(user=pk)
         return Response(serializers.AppointmentSerializer(user_appointments, many=True).data)
 
-
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
 
+    def get_permissions(self):
+        if self.action in ['current_user', 'update_user_info']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
     def create(self, request, *args, **kwargs):
-        """
-        Xử lý yêu cầu POST để đăng ký người dùng mới
-        """
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            # Mã hóa mật khẩu trước khi lưu
-            serializer.validated_data['password'] = make_password(serializer.validated_data['password'])
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            return Response({"message": "Đăng ký thành công"}, status=status.HTTP_201_CREATED, headers=headers)
+            user = serializer.save()
+            return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['get', 'patch'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
-    def get_current_user(self, request):
-        """
-        Lấy hoặc cập nhật thông tin người dùng hiện tại
-        """
-        u = request.user
-        if request.method.__eq__('PATCH'):
-            for k, v in request.data.items():
-                if k in ['first_name', 'last_name']:
-                    setattr(u, k, v)
-                elif k.__eq__('password'):
-                    u.set_password(v)
-            u.save()
+    @action(methods=['get'], url_path='current-user', detail=False)
+    def current_user(self, request):
+        return Response(serializers.UserSerializer(request.user).data)
 
-        return Response(serializers.UserSerializer(u).data)
