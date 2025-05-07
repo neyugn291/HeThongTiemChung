@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.5','127.0.0.1','localhost'] # Runserver IP Lan máy tính + port
+ALLOWED_HOSTS = ['192.168.1.8'] # Runserver IP Lan máy tính + port
 
 # Application definition
 
@@ -58,8 +58,11 @@ OAUTH2_PROVIDER = {
     'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,
     'AUTHORIZATION_CODE_EXPIRE_SECONDS': 600,
     'APPLICATION_MODEL': 'oauth2_provider.Application',
-    'SCOPES': {'read': 'Read scope', 'write': 'Write scope'},
     'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.OAuthLibCore',
+    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to groups'},
+    'CLIENT_ID_GENERATOR_CLASS': 'oauth2_provider.generators.ClientIdGenerator',
+    'CLIENT_SECRET_GENERATOR_CLASS': 'oauth2_provider.generators.ClientSecretGenerator',
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https'],
 }
 
 MIDDLEWARE = [
@@ -109,7 +112,7 @@ DATABASES = {
 }
 
 INTERNAL_IPS = [
- '192.168.1.5', # Runserver IP Lan máy tính + port
+    '192.168.1.8', # Runserver IP Lan máy tính + port
  ]
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
