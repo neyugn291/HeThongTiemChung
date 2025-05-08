@@ -1,8 +1,8 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-import re
 
-from .models import Vaccine, User, Appointment
+
+from .models import Vaccine, User, Appointment, VaccinationRecord
 
 class VaccineSerializer(ModelSerializer):
     class Meta:
@@ -41,6 +41,25 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'email', 'password', 'avatar']
         extra_kwargs = {'password': {'write_only': True}}
+
+class VaccinationRecordSerializer(ModelSerializer):
+    vaccine_name = serializers.CharField(source='vaccine.name', read_only=True)
+    site_name = serializers.CharField(source='site.name', read_only=True)
+    site_address = serializers.CharField(source='site.address', read_only=True)
+
+    class Meta:
+        model = VaccinationRecord
+        fields = [
+            'id',
+            'vaccine',
+            'vaccine_name',
+            'dose_number',
+            'injection_date',
+            'site',
+            'site_name',
+            'site_address',
+            'created_date'
+        ]
 
 class AppointmentSerializer(ModelSerializer):
     class Meta:
