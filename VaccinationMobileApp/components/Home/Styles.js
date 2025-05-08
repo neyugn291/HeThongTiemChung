@@ -1,0 +1,149 @@
+import { StyleSheet } from "react-native";
+
+export default StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#6a97a4",
+  },
+  header: {
+    height: 120,
+    paddingBottom: 5,
+    paddingHorizontal: 30,
+    backgroundColor: "#0c5776",
+    justifyContent: "center",
+  },
+  avatar: {
+    width: 45,
+    height: 45,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  greetingText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  nameText: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  notification: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "#f08486",
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  notificationText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  banner: {
+    marginTop: 25,
+    width: "100%",
+    height: 170,
+    borderRadius: 15,
+  },
+  gridContainer: {
+    marginTop: 20,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    padding: 15,
+    paddingBottom: 0,
+  },
+  gridItem: {
+    width: "22%",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  iconBox: {
+    backgroundColor: "#e0f2fe",
+    padding: 15,
+    borderRadius: 12,
+  },
+  iconLabel: {
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 6,
+    color: "#e0f2fe",
+  },
+  footerBanner: {
+    width: "100%",
+    height: 95,
+    borderRadius: 15,
+  },
+  bottomNav: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#e0f2fe",
+    paddingVertical: 30,
+    shadowColor: "#021b42",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+  navItem: {
+    alignItems: "center",
+  },
+  navLabel: {
+    fontSize: 12,
+    color: "#021b42",
+    marginTop: 4,
+  },
+  activeNav: {
+    color: "#021b42",
+    fontWeight: "bold",
+  }, 
+  aiContainer: {
+    position: "absolute",
+    left: 270,
+    top: 480,
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 100, // Đảm bảo nằm trên các thành phần khác
+  },
+  aiButton: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#0c5776",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 100,
+  },
+  aiIcon: {
+    width: 50, // Kích thước hình ảnh AI
+    height: 50,
+  },
+  aiSpeechBubble: {
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    padding: 10,
+    marginLeft: -140, // Đặt khoảng cách bên trái button
+    borderWidth: 1,
+    borderColor: "#ccc",
+    maxWidth: 150,
+  },
+  aiSpeechText: {
+    color: "#000",
+    fontSize: 14,
+    textAlign: "center",
+  },
+});
