@@ -2,16 +2,16 @@ import React, { useState, useContext } from "react";
 import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Apis, { authApis, endpoints } from "../../configs/Apis"; // Giả sử bạn đã có cấu hình API
-import { MyDispatchContext } from "../../configs/MyContexts"; // Context để dispatch trạng thái đăng nhập
+import Apis, { authApis, endpoints } from "../../configs/Apis";
+import { MyDispatchContext } from "../../configs/MyContexts";
 import { useNavigation } from "@react-navigation/native";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null); // Thông báo lỗi
-  const [loading, setLoading] = useState(false); // Trạng thái tải
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const dispatch = useContext(MyDispatchContext);
   const navigation = useNavigation();
 
@@ -36,22 +36,38 @@ const Login = () => {
     setError(null);
 
     try {
-      // Gửi yêu cầu đăng nhập tới endpoint OAuth2
-      const res = await Apis.post(endpoints["login"], {
+      // Chuẩn bị dữ liệu đăng nhập
+      const loginData = {
         username,
         password,
-        client_id: "kcsDgyInFIBjIlb3evqzpyNFJ59gCNtdNqnpbqDY",
-        client_secret: "jvYbMZ8XQ9nxn8mZc7FDiVb8JFWFxuzYQHdYdp5yqhun7gux705RCR0lScOfiUgDY8thrtJV5d5Rk3QdDKXGfwk3xLECgACUxdHAfEM5KdGSXQhUQMkftOeldAULJXAE",
+        client_id: "kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup",
+        client_secret: "UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK",
         grant_type: "password",
+      };
+      console.log("Dữ liệu gửi lành đăng nhập:", loginData);
+
+      // Gửi yêu cầu đăng nhập
+      const res = await Apis.post(endpoints["login"], loginData, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        transformRequest: [(data) => {
+          const params = new URLSearchParams();
+          for (const key in data) {
+            params.append(key, data[key]);
+          }
+          return params.toString();
+        }],
       });
+      
+      console.log("Phản hồi đăng nhập:", res.data);
 
       // Lưu access_token vào AsyncStorage
       await AsyncStorage.setItem("token", res.data.access_token);
 
       // Lấy thông tin người dùng
-      const userData = await authApis(res.data.access_token).get(
-        endpoints["currentUser"]
-      );
+      const userData = await authApis(res.data.access_token).get(endpoints["currentUser"]);
+      console.log("Thông tin người dùng:", userData.data);
 
       // Dispatch trạng thái đăng nhập
       dispatch({
@@ -59,10 +75,26 @@ const Login = () => {
         payload: userData.data,
       });
 
-      // Điều hướng tới màn hình home
-      navigation.navigate("Home");
+      // Chuyển hướng đến Home
+      navigation.replace("Home");
     } catch (ex) {
-      setError("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!");
+      console.error("Lỗi chi tiết:", ex.response ? ex.response.data : ex.message);
+      if (ex.response) {
+        const errors = ex.response.data;
+        if (errors.error === "unsupported_grant_type") {
+          setError("Server không hỗ trợ phương thức đăng nhập này. Vui lòng kiểm tra cấu hình!");
+        } else if (errors.error === "invalid_grant") {
+          setError("Tên đăng nhập hoặc mật khẩu không đúng!");
+        } else if (errors.error === "invalid_client") {
+          setError("Thông tin client không hợp lệ. Vui lòng kiểm tra client_id và client_secret!");
+        } else if (errors.non_field_errors) {
+          setError(errors.non_field_errors[0]);
+        } else {
+          setError("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!");
+        }
+      } else {
+        setError("Không thể kết nối đến server. Vui lòng kiểm tra mạng!");
+      }
     } finally {
       setLoading(false);
     }
@@ -118,9 +150,7 @@ const Login = () => {
         </TouchableOpacity>
 
         <Text style={myStyles.link}>Quên mật khẩu</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Register")}
-        >
+        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
           <Text style={myStyles.link}>Tạo tài khoản mới</Text>
         </TouchableOpacity>
       </View>
@@ -203,7 +233,7 @@ const myStyles = StyleSheet.create({
     zIndex: 1,
   },
   disabledBtn: {
-    backgroundColor: "#a0a0a0", // Màu khi nút bị vô hiệu hóa
+    backgroundColor: "#a0a0a0",
   },
   loginText: {
     color: "#fff",
