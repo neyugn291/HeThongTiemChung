@@ -48,7 +48,7 @@ class AppointmentViewSet(viewsets.ViewSet):
         # AppointmentViewSet - cho nhân viên y tế
 class AppointmentAdminViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
         return Appointment.objects.all()  # Nhân viên y tế có thể xem tất cả lịch hẹn
@@ -77,17 +77,18 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointment.save()
         return Response({"message": "Health note added successfully"})
 
-    @action(methods=['get'], detail=True)
-    def history(self, request, pk=None):
-        # Lấy lịch sử tiêm của người dân
-        user_appointments = Appointment.objects.filter(user=pk)
-        return Response(serializers.AppointmentSerializer(user_appointments, many=True).data)
+    @action(methods=['get'], detail=False)
+    def history(self, request):
+        appointments = Appointment.objects.all()
+        serializer = serializers.AppointmentSerializer(appointments, many=True)
+        return Response(serializer.data)
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
+
 
     @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
     def history(self, request):
@@ -99,17 +100,17 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         serialized = AppointmentSerializer(user_appointments, many=True)
         return Response(serialized.data)
 
+    def get_permissions(self):
+        if self.action in ['current_user', 'update_user_info']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
+
     def create(self, request, *args, **kwargs):
-        """
-        Xử lý yêu cầu POST để đăng ký người dùng mới
-        """
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            # Mã hóa mật khẩu trước khi lưu
-            serializer.validated_data['password'] = make_password(serializer.validated_data['password'])
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            return Response({"message": "Đăng ký thành công"}, status=status.HTTP_201_CREATED, headers=headers)
+            user = serializer.save()
+            return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
@@ -171,5 +172,6 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         buffer.seek(0)
 
         return FileResponse(buffer, as_attachment=True, filename='vaccination_certificate.pdf')
+
 
 
