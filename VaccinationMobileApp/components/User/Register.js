@@ -80,6 +80,8 @@ const Register = () => {
       if (user.email) form.append("email", user.email);
       if (user.username) form.append("username", user.username);
       if (user.password) form.append("password", user.password);
+      if (user.firstName) form.append("first_name", user.firstName);
+      if (user.lastName) form.append("last_name", user.lastName);
       if (user.avatar) {
         form.append("avatar", {
           uri: user.avatar.uri,
@@ -91,6 +93,8 @@ const Register = () => {
         email: user.email,
         username: user.username,
         password: user.password,
+        firstName: user.firstName,
+        lastName: user.lastName,
         hasAvatar: !!user.avatar,
       });
 
@@ -145,7 +149,7 @@ const Register = () => {
           payload: userData.data,
         });
 
-        Alert.alert("Thành công", "Đăng ký và đăng nhập thành công!");
+        Alert.alert("Thành công", "Đăng ký tài khoản thành công!");
         // Chuyển hướng đến Home
         navigation.replace("Home");
       } else {
@@ -200,6 +204,20 @@ const Register = () => {
             <Icon name="camera" size={30} color="#999" />
           )}
         </TouchableOpacity>
+        <TextInput
+          style={myStyles.input}
+          placeholder="Họ"
+          placeholderTextColor="#999"
+          value={user.lastName || ""}
+          onChangeText={(text) => setState(text, "lastName")}
+        />
+        <TextInput
+          style={myStyles.input}
+          placeholder="Tên"
+          placeholderTextColor="#999"
+          value={user.firstName || ""}
+          onChangeText={(text) => setState(text, "firstName")}
+        />
         <TextInput
           style={myStyles.input}
           placeholder="Email"

@@ -7,6 +7,10 @@ import { MyUserContext, MyDispatchContext } from "./configs/MyContexts";
 import Home from "./components/Home/Home";
 import Login from "./components/User/Login";
 import Register from "./components/User/Register";
+import StaffHome from "./components/Home/StaffHome";
+import AdminHome from "./components/Home/AdminHome";
+import Account from "./components/User/Account";
+import Profile from "./components/User/Profile";
 
 // Reducer để quản lý trạng thái người dùng
 const MyUserReducer = (state, action) => {
@@ -34,6 +38,10 @@ const App = () => {
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Register" component={Register} />
             <Stack.Screen name="Home" component={Home} />
+            <Stack.Screen name="StaffHome" component={StaffHome} />
+            <Stack.Screen name="AdminHome" component={AdminHome} />
+            <Stack.Screen name="Account" component={Account} />
+            <Stack.Screen name="Profile" component={Profile} />
           </Stack.Navigator>
         </NavigationContainer>
       </MyDispatchContext.Provider>
