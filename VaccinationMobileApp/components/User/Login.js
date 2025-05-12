@@ -75,8 +75,14 @@ const Login = () => {
         payload: userData.data,
       });
 
-      // Chuyển hướng đến Home
-      navigation.replace("Home");
+      // Kiểm tra is_superuser và is_staff để chuyển hướng
+      if (userData.data.is_superuser === true) {
+        navigation.replace("AdminHome");
+      } else if (userData.data.is_staff === true) {
+        navigation.replace("StaffHome");
+      } else {
+        navigation.replace("Home");
+      }
     } catch (ex) {
       console.error("Lỗi chi tiết:", ex.response ? ex.response.data : ex.message);
       if (ex.response) {
@@ -84,7 +90,7 @@ const Login = () => {
         if (errors.error === "unsupported_grant_type") {
           setError("Server không hỗ trợ phương thức đăng nhập này. Vui lòng kiểm tra cấu hình!");
         } else if (errors.error === "invalid_grant") {
-          setError("Tên đăng nhập hoặc mật khẩu không đúng!");
+          setError("Sai thông tin hoặc tài khoản không hoạt động!");
         } else if (errors.error === "invalid_client") {
           setError("Thông tin client không hợp lệ. Vui lòng kiểm tra client_id và client_secret!");
         } else if (errors.non_field_errors) {
@@ -158,6 +164,7 @@ const Login = () => {
   );
 };
 
+// Styles remain unchanged
 const myStyles = StyleSheet.create({
   container: {
     flex: 1,

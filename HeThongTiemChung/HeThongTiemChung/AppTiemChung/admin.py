@@ -1,22 +1,18 @@
-from django.contrib import admin
-from django.template.response import TemplateResponse
-from django.contrib.auth.admin import UserAdmin
-
-from .models import Vaccine, VaccineType, User, InjectionSite, InjectionSchedule, VaccinationRecord, Appointment
-from django.utils.html import mark_safe
-from django import forms
+from AppTiemChung import dao
 from ckeditor_uploader.widgets \
     import CKEditorUploadingWidget
-
+from django import forms
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.template.response import TemplateResponse
+from django.urls import path
 from django.utils.html import mark_safe
 
-from django.urls import path
-from AppTiemChung import dao
+from .models import Vaccine, VaccineType, User, InjectionSite, InjectionSchedule, VaccinationRecord, Appointment
 
 
 class AppTiemChungAdminSite(admin.AdminSite):
     site_header = 'He Thong Tiem Chung'
-
 
     def get_urls(self):
         return [
@@ -25,22 +21,27 @@ class AppTiemChungAdminSite(admin.AdminSite):
 
     def stats_view(self, request):
         return TemplateResponse(request, 'admin/stats.html', {
-            'stats':dao.count_vaccine_by_type()
+            'stats': dao.count_vaccine_by_type()
         })
 
+
 admin_site = AppTiemChungAdminSite(name='vaccinationApp')
+
 
 class VaccineTypeAdmin(admin.ModelAdmin):
     pass
 
+
 class VaccineForm(forms.ModelForm):
     description = forms.CharField(widget=CKEditorUploadingWidget())
+
     class Meta:
         model = Vaccine
         fields = '__all__'
 
+
 class VaccineAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'vaccine_type', 'dose_count','image']
+    list_display = ['id', 'name', 'vaccine_type', 'dose_count', 'image']
     list_filter = ['vaccine_type', 'name']
     form = VaccineForm
 
@@ -51,9 +52,10 @@ class VaccineAdmin(admin.ModelAdmin):
 
     image_preview.short_description = 'Preview'
 
+
 class MyUserAdmin(UserAdmin):
     list_display = ['id', 'username', 'email', 'is_active', 'is_staff', 'avatar']
-    list_filter = [ 'is_active']
+    list_filter = ['is_active']
     search_fields = ['username', 'email']
     ordering = ['id']
 
@@ -68,8 +70,6 @@ admin_site.register(InjectionSite)
 admin_site.register(InjectionSchedule)
 admin_site.register(VaccinationRecord)
 admin_site.register(Appointment)
-
-
 
 admin_site.register(VaccineType, VaccineTypeAdmin)
 admin_site.register(Vaccine, VaccineAdmin)

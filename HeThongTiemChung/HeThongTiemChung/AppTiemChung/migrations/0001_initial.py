@@ -11,7 +11,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -49,7 +48,9 @@ class Migration(migrations.Migration):
                 ('age_group', models.CharField(blank=True, max_length=50, null=True)),
                 ('description', ckeditor.fields.RichTextField(blank=True, null=True)),
                 ('approved_date', models.DateField(blank=True, null=True)),
-                ('status', models.CharField(choices=[('Active', 'Dang su dung'), ('Discontinued', 'Ngung su dung'), ('Pending Approval', 'Chua phe duyet'), ('Expired', 'Da het han')], default='Active', max_length=20)),
+                ('status', models.CharField(choices=[('Active', 'Dang su dung'), ('Discontinued', 'Ngung su dung'),
+                                                     ('Pending Approval', 'Chua phe duyet'), ('Expired', 'Da het han')],
+                                            default='Active', max_length=20)),
             ],
         ),
         migrations.CreateModel(
@@ -74,7 +75,8 @@ class Migration(migrations.Migration):
                 ('updated_date', models.DateTimeField(auto_now=True, null=True)),
                 ('date', models.DateField()),
                 ('slot_count', models.PositiveIntegerField(default=100)),
-                ('site', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='AppTiemChung.injectionsite')),
+                ('site',
+                 models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='AppTiemChung.injectionsite')),
                 ('vaccine', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='AppTiemChung.vaccine')),
             ],
             options={
@@ -84,7 +86,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='vaccine',
             name='vaccine_type',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='AppTiemChung.vaccinetype'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE,
+                                    to='AppTiemChung.vaccinetype'),
         ),
         migrations.CreateModel(
             name='User',
@@ -92,12 +95,22 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('password', models.CharField(max_length=128, verbose_name='password')),
                 ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
-                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
-                ('username', models.CharField(error_messages={'unique': 'A user with that username already exists.'}, help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.', max_length=150, unique=True, validators=[django.contrib.auth.validators.UnicodeUsernameValidator()], verbose_name='username')),
+                ('is_superuser', models.BooleanField(default=False,
+                                                     help_text='Designates that this user has all permissions without explicitly assigning them.',
+                                                     verbose_name='superuser status')),
+                ('username', models.CharField(error_messages={'unique': 'A user with that username already exists.'},
+                                              help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.',
+                                              max_length=150, unique=True,
+                                              validators=[django.contrib.auth.validators.UnicodeUsernameValidator()],
+                                              verbose_name='username')),
                 ('first_name', models.CharField(blank=True, max_length=150, verbose_name='first name')),
                 ('last_name', models.CharField(blank=True, max_length=150, verbose_name='last name')),
-                ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into this admin site.', verbose_name='staff status')),
-                ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
+                ('is_staff', models.BooleanField(default=False,
+                                                 help_text='Designates whether the user can log into this admin site.',
+                                                 verbose_name='staff status')),
+                ('is_active', models.BooleanField(default=True,
+                                                  help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
+                                                  verbose_name='active')),
                 ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
                 ('active', models.BooleanField(default=True)),
                 ('created_date', models.DateTimeField(auto_now_add=True, null=True)),
@@ -108,8 +121,13 @@ class Migration(migrations.Migration):
                 ('avatar', cloudinary.models.CloudinaryField(max_length=255, null=True)),
                 ('is_verified', models.BooleanField(default=False)),
                 ('modified_date', models.DateTimeField(default=django.utils.timezone.now)),
-                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
-                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
+                ('groups', models.ManyToManyField(blank=True,
+                                                  help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',
+                                                  related_name='user_set', related_query_name='user', to='auth.group',
+                                                  verbose_name='groups')),
+                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.',
+                                                            related_name='user_set', related_query_name='user',
+                                                            to='auth.permission', verbose_name='user permissions')),
             ],
             options={
                 'verbose_name': 'user',
@@ -129,8 +147,10 @@ class Migration(migrations.Migration):
                 ('updated_date', models.DateTimeField(auto_now=True, null=True)),
                 ('dose_number', models.PositiveIntegerField()),
                 ('injection_date', models.DateField()),
-                ('site', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='AppTiemChung.injectionsite')),
-                ('vaccine', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='AppTiemChung.vaccine')),
+                ('site', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL,
+                                           to='AppTiemChung.injectionsite')),
+                ('vaccine',
+                 models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='AppTiemChung.vaccine')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
             options={
@@ -146,7 +166,8 @@ class Migration(migrations.Migration):
                 ('updated_date', models.DateTimeField(auto_now=True, null=True)),
                 ('registered_at', models.DateTimeField(auto_now_add=True)),
                 ('is_confirmed', models.BooleanField(default=False)),
-                ('schedule', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='AppTiemChung.injectionschedule')),
+                ('schedule',
+                 models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='AppTiemChung.injectionschedule')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
             options={
