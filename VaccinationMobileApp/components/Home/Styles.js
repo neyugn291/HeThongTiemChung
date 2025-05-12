@@ -104,11 +104,11 @@ export default StyleSheet.create({
   activeNav: {
     color: "#021b42",
     fontWeight: "bold",
-  }, 
+  },
   aiContainer: {
     position: "absolute",
     left: 270,
-    top: 480,
+    top: 470,
     flexDirection: "row",
     alignItems: "center",
     zIndex: 100, // Đảm bảo nằm trên các thành phần khác
@@ -145,5 +145,38 @@ export default StyleSheet.create({
     color: "#000",
     fontSize: 14,
     textAlign: "center",
+  },
+  footerText: {
+    textAlign: "center",
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 10,
+    textDecorationStyle: "solid",
+    textDecorationLine: "underline",
+    textDecorationColor: "#fff",
+  },
+  // Thêm các style mới
+  newGridItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    width: "100%",
+    backgroundColor: "#f8dad0",
+    marginBottom: 10,
+    borderRadius: 8,
+  },
+  newGridLabel: {
+    fontSize: 16,
+    color: "#021b42",
+    marginLeft: 10,
+    fontWeight: "bold",
+  },
+  avatarIcon: {
+    width: 40,
+    height: 40,
+    marginRight: 10,
   },
 });

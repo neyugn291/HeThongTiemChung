@@ -1,5 +1,7 @@
-from .models import VaccineType, Vaccine
 from django.db.models import Count
+
+from .models import VaccineType, Vaccine
+
 
 def load_vaccine(param={}):
     q = Vaccine.objects.filter(active=True)
@@ -13,6 +15,7 @@ def load_vaccine(param={}):
         q = q.filter(vaccine_type_id=vaccine_type_id)
 
     return q
+
 
 def count_vaccine_by_type():
     return VaccineType.objects.annotate(count=Count('id')).values('id', 'name', 'count').order_by('count')
