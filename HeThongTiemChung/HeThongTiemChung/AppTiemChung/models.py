@@ -50,7 +50,7 @@ class Vaccine(BaseModel):
 
     name = models.CharField(max_length=100,verbose_name=_('Ten Vaccine'))
     image = models.ImageField(upload_to='vaccines',blank=True, null=True)
-    vaccine_type = models.ForeignKey(VaccineType, default= get_default_vaccine_type(), on_delete=models.CASCADE)
+    vaccine_type = models.ForeignKey(VaccineType, null=True, blank=True, on_delete=models.CASCADE)
     manufacturer = models.CharField(max_length=100, blank=True, null=True)
     dose_count = models.IntegerField(default=10000)
     dose_interval = models.CharField(max_length=50, blank=True, null=True)

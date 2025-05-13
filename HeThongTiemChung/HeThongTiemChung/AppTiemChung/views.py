@@ -1,8 +1,9 @@
-from django.shortcuts import render
 from django.http import HttpResponse
+
 
 def index(request):
     return HttpResponse("Vaccination App")
+
 
 from rest_framework import viewsets, permissions, generics, parsers, status
 from rest_framework.decorators import action
@@ -11,13 +12,14 @@ from rest_framework.response import Response
 from .models import Vaccine, User, Appointment, VaccinationRecord
 from .serializers import AppointmentSerializer
 
-from django.contrib.auth.hashers import make_password
 from AppTiemChung import serializers
+
 
 class VaccineViewSet(viewsets.ModelViewSet):
     queryset = Vaccine.objects.filter(active=True)
     serializer_class = serializers.VaccineSerializer
     permission_classes = [permissions.IsAuthenticated]
+
 
 # class AppointmentViewSet(viewsets.ModelViewSet):
 #     serializer_class = serializers.AppointmentSerializer
@@ -44,8 +46,9 @@ class AppointmentViewSet(viewsets.ViewSet):
         # Gửi email hoặc push notification ở đây
         return Response({"message": "Reminder sent!"})
 
-
         # AppointmentViewSet - cho nhân viên y tế
+
+
 class AppointmentAdminViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
     permission_classes = [permissions.IsAdminUser]
@@ -84,11 +87,11 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
 
+
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
-
 
     @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
     def history(self, request):
@@ -101,10 +104,9 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return Response(serialized.data)
 
     def get_permissions(self):
-        if self.action in ['current_user', 'update_user_info']:
+        if self.action in ['current_user', 'history']:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
-
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -113,26 +115,39 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['get', 'patch'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
+    @action(methods=['get', 'patch'], url_path='current-user', detail=False,
+            permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
         """
         Lấy hoặc cập nhật thông tin người dùng hiện tại
         """
         u = request.user
         if request.method.__eq__('PATCH'):
+            serializer = serializers.UserSerializer(u, data=request.data, partial=True)
+            if serializer.is_valid():
+                validated_data = serializer.validated_data
             for k, v in request.data.items():
-                if k in ['first_name', 'last_name']:
-                    setattr(u, k, v)
-                elif k.__eq__('password'):
+                if k.__eq__('password'):
                     u.set_password(v)
+                elif k.__eq__('avatar'):
+                    if v:
+                        u.avatar = v;
+                elif k.__eq__('gender'):
+                    u.gender = v
+                elif k.__eq__('birth_date'):
+                    u.birth_date = v
+                else:
+                    setattr(u, k, v)
             u.save()
 
         return Response(serializers.UserSerializer(u).data)
+
 
 import io
 from django.http import FileResponse
 from reportlab.pdfgen import canvas
 from datetime import datetime
+
 
 class VaccinationRecordViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -142,8 +157,6 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         records = VaccinationRecord.objects.filter(user=request.user).select_related('vaccine', 'site')
         data = serializers.VaccinationRecordSerializer(records, many=True).data
         return Response(data)
-
-
 
     @action(detail=False, methods=['get'], url_path='certificate')
     def download_certificate(self, request):
@@ -172,6 +185,3 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         buffer.seek(0)
 
         return FileResponse(buffer, as_attachment=True, filename='vaccination_certificate.pdf')
-
-
-

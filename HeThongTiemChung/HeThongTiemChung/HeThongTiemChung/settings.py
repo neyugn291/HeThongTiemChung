@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,8 +25,10 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
 ALLOWED_HOSTS = ['192.168.1.5',
                  '127.0.0.1'] # Runserver IP Lan máy tính + port
+
 
 # Application definition
 
@@ -49,8 +51,21 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-    'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.TokenAuthentication'
     )
+}
+
+OAUTH2_PROVIDER = {
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,
+    'AUTHORIZATION_CODE_EXPIRE_SECONDS': 600,
+    'APPLICATION_MODEL': 'oauth2_provider.Application',
+    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.OAuthLibCore',
+    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to groups'},
+    'CLIENT_ID_GENERATOR_CLASS': 'oauth2_provider.generators.ClientIdGenerator',
+    'CLIENT_SECRET_GENERATOR_CLASS': 'oauth2_provider.generators.ClientSecretGenerator',
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https'],
 }
 
 MIDDLEWARE = [
@@ -62,11 +77,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "debug_toolbar.middleware.DebugToolbarMiddleware",
-    'corsheaders.middleware.CorsMiddleware'
-]
-
-CORS_ALLOWED_ORIGINS = [
-
+    'corsheaders.middleware.CorsMiddleware',
+    'oauth2_provider.middleware.OAuth2TokenMiddleware'
 ]
 
 ROOT_URLCONF = 'HeThongTiemChung.urls'
@@ -74,10 +86,11 @@ ROOT_URLCONF = 'HeThongTiemChung.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -102,13 +115,11 @@ DATABASES = {
 }
 
 INTERNAL_IPS = [
- '192.168.1.5', # Runserver IP Lan máy tính + port
-    '127.0.0.1'
+    '192.168.1.8', # Runserver IP Lan máy tính + port
  ]
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
-import os
 MEDIA_ROOT = os.path.join(BASE_DIR, 'AppTiemChung', 'media')
 
 AUTH_USER_MODEL = 'AppTiemChung.User'
@@ -116,6 +127,7 @@ AUTH_USER_MODEL = 'AppTiemChung.User'
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
+import cloudinary
 import cloudinary.uploader
 
 cloudinary.config(
@@ -163,8 +175,21 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
 # CLIENT_ID = 'kcsDgyInFIBjIlb3evqzpyNFJ59gCNtdNqnpbqDY'
 # CLIENT_SECRET = 'jvYbMZ8XQ9nxn8mZc7FDiVb8JFWFxuzYQHdYdp5yqhun7gux705RCR0lScOfiUgDY8thrtJV5d5Rk3QdDKXGfwk3xLECgACUxdHAfEM5KdGSXQhUQMkftOeldAULJXAE'
 
-CLIENT_ID = 'wFeXbptsF7znEC2O9BpAVS8iJYnlKGiTaE5ToTLc'
-CLIENT_SECRET = 'WplIYbPsaSpWtxyrmaU9l9SV4rsKIrtySD0T88lFPlOOGUFWr8o1m5FTgeeWq3XXI7e1W4XFpTwp2BHpvgIUF594NSMFY0ESSuc6Vom1z4G8uxwoKZuHALANnlfvvH6Z'
+# CLIENT_ID = 'lNexKUJK2kpPGdHBqJdbOCXjKrPD15eGHBgQRWfR'
+# CLIENT_SECRET = 'AUs0UVWlGM3PnLvcfULLGQeJlnnBfLVbxV4blkeglPCnQCW9FM8hjzqJIUg59JZ5cMPEF7XAsZalr6jGF3G5ZANjv6DnIrwfVEm4lI1GIMbYhljwT1glhIOrHgCmlcaz'
+
+CLIENT_ID = 'kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup'
+CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # bắt buộc
+]
+
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
