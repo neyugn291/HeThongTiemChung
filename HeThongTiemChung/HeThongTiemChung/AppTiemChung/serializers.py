@@ -3,7 +3,7 @@ from datetime import date, datetime
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
-from .models import Vaccine, User, Appointment, VaccinationRecord
+from .models import Vaccine, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite
 
 
 class VaccineSerializer(ModelSerializer):
@@ -103,3 +103,13 @@ class AppointmentSerializer(ModelSerializer):
         model = Appointment
         fields = '__all__'
         read_only_fields = ('created_at', 'user')
+
+class InjectionScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InjectionSchedule
+        fields = '__all__'
+
+class InjectionSiteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InjectionSite
+        fields = ['id', 'name', 'address', 'phone']
