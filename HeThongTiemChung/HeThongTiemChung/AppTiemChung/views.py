@@ -9,8 +9,9 @@ from rest_framework import viewsets, permissions, generics, parsers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Vaccine, User, Appointment, VaccinationRecord
-from .serializers import AppointmentSerializer
+from .models import Vaccine, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite
+from .serializers import AppointmentSerializer, InjectionScheduleSerializer,InjectionSiteSerializer
+from .permissions import IsAdminUser, IsStaffUser
 
 from AppTiemChung import serializers
 
@@ -32,13 +33,9 @@ class VaccineViewSet(viewsets.ModelViewSet):
 #         # gán user hiện tại khi tạo lịch hẹn
 #         serializer.save(user=self.request.user)
 
-class AppointmentViewSet(viewsets.ViewSet):
-    def list(self, request):
-        # GET /appointments/
-        appointments = Appointment.objects.filter(user=request.user)
-        serializer = AppointmentSerializer(appointments, many=True)
-        return Response(serializer.data)
-
+class AppointmentViewSet(viewsets.ModelViewSet):
+    serializers_class = serializers.AppointmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
     @action(detail=True, methods=['get'])
     def reminders(self, request, pk=None):
         # GET /appointments/{id}/reminders/
@@ -46,7 +43,7 @@ class AppointmentViewSet(viewsets.ViewSet):
         # Gửi email hoặc push notification ở đây
         return Response({"message": "Reminder sent!"})
 
-        # AppointmentViewSet - cho nhân viên y tế
+
 
 
 class AppointmentAdminViewSet(viewsets.ViewSet):
@@ -185,3 +182,78 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         buffer.seek(0)
 
         return FileResponse(buffer, as_attachment=True, filename='vaccination_certificate.pdf')
+
+
+class InjectionScheduleViewSet(viewsets.ViewSet):
+    """
+    API cho việc quản lý lịch tiêm.
+    Người dùng phải là admin mới có thể truy cập.
+    """
+    queryset = InjectionSchedule.objects.all()  # Lấy tất cả lịch tiêm
+    serializer_class = InjectionScheduleSerializer  # Serializer để chuyển đổi dữ liệu thành JSON
+    permission_classes = [IsAdminUser]  # Chỉ admin mới có quyền truy cập
+
+    def get_permissions(self):
+        """
+        Thiết lập quyền truy cập tùy theo action.
+        """
+        if self.action in ['create', 'update', 'destroy']:
+            return [permissions.IsAdminUser()]  # Chỉ admin mới có quyền thực hiện các hành động này
+        return [permissions.IsAuthenticated()]  # Người dùng xác thực có thể xem lịch tiêm
+
+    @action(detail=True, methods=['get'])
+    def check_availability(self, request, pk=None):
+        """
+        Kiểm tra xem lịch tiêm tại một địa điểm có còn chỗ trống hay không.
+        """
+        schedule = self.get_object()  # Lấy đối tượng InjectionSchedule theo pk
+        available_slots = schedule.slot_count  # Lấy số lượng slot còn lại
+        if available_slots > 0:
+            return Response({"message": "Chỗ trống còn lại: {}".format(available_slots)})
+        else:
+            return Response({"message": "Không còn chỗ trống"}, status=404)
+
+    @action(detail=False, methods=['get'])
+    def upcoming_schedules(self, request):
+        """
+        Lấy tất cả lịch tiêm sắp tới.
+        """
+        upcoming_schedules = InjectionSchedule.objects.filter(date__gte=datetime.date.today())
+        serializer = InjectionScheduleSerializer(upcoming_schedules, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def all_schedules(self, request):
+        """
+        API cho tất cả người dùng xem tất cả lịch tiêm (bao gồm lịch tiêm trong quá khứ và sắp tới).
+        """
+        view_past = request.query_params.get('view_past', 'false')  # Lấy tham số query view_past
+
+        if view_past.lower() == 'true':
+            # Lấy tất cả lịch tiêm bao gồm cả đã diễn ra và sắp tới
+            all_schedules = InjectionSchedule.objects.all()
+        else:
+            # Chỉ lấy lịch tiêm sắp tới
+            all_schedules = InjectionSchedule.objects.filter(date__gte=datetime.date.today())
+
+        serializer = InjectionScheduleSerializer(all_schedules, many=True)
+        return Response(serializer.data)
+
+    def create(self, request):
+        """
+        Tạo mới lịch tiêm.
+        """
+        serializer = InjectionScheduleSerializer(data=request.data)
+
+        if serializer.is_valid():
+            # Lưu lịch tiêm mới vào cơ sở dữ liệu
+            schedule = serializer.save()
+
+            return Response(InjectionScheduleSerializer(schedule).data, status=201)  # Trả về dữ liệu đã tạo
+        else:
+            return Response(serializer.errors, status=400)  # Trả về lỗi nếu dữ liệu không hợp lệ
+
+class InjectionSiteViewSet(viewsets.ModelViewSet):
+    queryset = InjectionSite.objects.all()
+    serializer_class = InjectionSiteSerializer
+    permission_classes = [IsAdminUser]
