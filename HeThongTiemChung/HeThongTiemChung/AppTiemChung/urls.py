@@ -10,6 +10,8 @@ router.register('users', views.UserViewSet, basename='register')
 router.register('appointment', views.AppointmentViewSet, basename='appointment')
 router.register('appointments', views.AppointmentAdminViewSet, basename='appointments')
 router.register('records', views.VaccinationRecordViewSet, basename='records')
+router.register(r'schedules', views.InjectionScheduleViewSet, basename='injectionschedule')
+router.register(r'sites', views.InjectionSiteViewSet, basename='injectionsite')
 
 urlpatterns = [
     path('', include(router.urls)),  # Bao gồm tất cả các URL từ router
