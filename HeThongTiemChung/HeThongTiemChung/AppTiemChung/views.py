@@ -120,9 +120,6 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         """
         u = request.user
         if request.method.__eq__('PATCH'):
-            serializer = serializers.UserSerializer(u, data=request.data, partial=True)
-            if serializer.is_valid():
-                validated_data = serializer.validated_data
             for k, v in request.data.items():
                 if k.__eq__('password'):
                     u.set_password(v)
