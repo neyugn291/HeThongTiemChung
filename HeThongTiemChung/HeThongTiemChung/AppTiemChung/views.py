@@ -51,7 +51,7 @@ class AppointmentViewSet(viewsets.ViewSet):
 
 class AppointmentAdminViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
         return Appointment.objects.all()  # Nhân viên y tế có thể xem tất cả lịch hẹn
@@ -80,11 +80,12 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointment.save()
         return Response({"message": "Health note added successfully"})
 
-    @action(methods=['get'], detail=True)
-    def history(self, request, pk=None):
-        # Lấy lịch sử tiêm của người dân
-        user_appointments = Appointment.objects.filter(user=pk)
-        return Response(serializers.AppointmentSerializer(user_appointments, many=True).data)
+    @action(methods=['get'], detail=False)
+    def history(self, request):
+        appointments = Appointment.objects.all()
+        serializer = serializers.AppointmentSerializer(appointments, many=True)
+        return Response(serializer.data)
+
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
