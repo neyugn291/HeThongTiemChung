@@ -5,35 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0c8c8b27-d69f-4ea4-a478-b37a8a873fc1" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/AppTiemChung/migrations/0002_alter_user_is_active.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AppTiemChung/migrations/0003_alter_user_is_active.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AppTiemChung/migrations/0004_user_birth_date_user_gender.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/setState(text" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/{" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/components/Home/AdminHome.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/components/Home/StaffHome.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/components/User/Account.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AppTiemChung/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/AppTiemChung/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AppTiemChung/dao.py" beforeDir="false" afterPath="$PROJECT_DIR$/AppTiemChung/dao.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AppTiemChung/migrations/0001_initial.py" beforeDir="false" afterPath="$PROJECT_DIR$/AppTiemChung/migrations/0001_initial.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AppTiemChung/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/AppTiemChung/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AppTiemChung/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/AppTiemChung/serializers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AppTiemChung/templates/admin/stats.html" beforeDir="false" afterPath="$PROJECT_DIR$/AppTiemChung/templates/admin/stats.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AppTiemChung/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/AppTiemChung/tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AppTiemChung/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/AppTiemChung/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AppTiemChung/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/AppTiemChung/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HeThongTiemChung/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/HeThongTiemChung/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HeThongTiemChung/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/HeThongTiemChung/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../VaccinationMobileApp/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/App.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../VaccinationMobileApp/components/Home/Home.js" beforeDir="false" afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/components/Home/Home.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../VaccinationMobileApp/components/Home/Styles.js" beforeDir="false" afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/components/Home/Styles.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../VaccinationMobileApp/components/User/Login.js" beforeDir="false" afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/components/User/Login.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../VaccinationMobileApp/components/User/Profile.js" beforeDir="false" afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/components/User/Profile.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../VaccinationMobileApp/components/User/Register.js" beforeDir="false" afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/components/User/Register.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../VaccinationMobileApp/configs/Apis.js" beforeDir="false" afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/configs/Apis.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../VaccinationMobileApp/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../VaccinationMobileApp/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../../VaccinationMobileApp/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -66,20 +39,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "Merging backend",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;backend&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="HeThongTiemChung" type="Python.DjangoServer" factoryName="Django server">
       <module name="HeThongTiemChung" />
@@ -125,6 +98,8 @@
       <workItem from="1746757722995" duration="2014000" />
       <workItem from="1746948795840" duration="2267000" />
       <workItem from="1747123173856" duration="914000" />
+      <workItem from="1747124476891" duration="233000" />
+      <workItem from="1747124724764" duration="363000" />
     </task>
     <servers />
   </component>
