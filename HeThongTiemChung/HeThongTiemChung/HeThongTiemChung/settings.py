@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import os
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,8 +25,10 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.14',
-                 '127.0.0.1']  # Runserver IP Lan máy tính + port
+
+ALLOWED_HOSTS = ['192.168.1.5',
+                 '127.0.0.1'] # Runserver IP Lan máy tính + port
+
 
 # Application definition
 
@@ -107,15 +109,15 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'vaccinationappdb',
         'USER': 'root',
-        'PASSWORD': 'Abc123',
+        'PASSWORD': 'Demo@123',
         'HOST': ''  # mặc định localhost
     }
 }
 
 INTERNAL_IPS = [
-    '192.168.1.14',  # Runserver IP Lan máy tính + port
-    '127.0.0.1',
-]
+    '192.168.1.8', # Runserver IP Lan máy tính + port
+    '127.0.0.1'
+ ]
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
@@ -126,6 +128,7 @@ AUTH_USER_MODEL = 'AppTiemChung.User'
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
+import cloudinary
 import cloudinary.uploader
 
 cloudinary.config(
@@ -173,11 +176,6 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CLIENT_ID = 'kcsDgyInFIBjIlb3evqzpyNFJ59gCNtdNqnpbqDY'
-# CLIENT_SECRET = 'jvYbMZ8XQ9nxn8mZc7FDiVb8JFWFxuzYQHdYdp5yqhun7gux705RCR0lScOfiUgDY8thrtJV5d5Rk3QdDKXGfwk3xLECgACUxdHAfEM5KdGSXQhUQMkftOeldAULJXAE'
-
-# CLIENT_ID = 'lNexKUJK2kpPGdHBqJdbOCXjKrPD15eGHBgQRWfR'
-# CLIENT_SECRET = 'AUs0UVWlGM3PnLvcfULLGQeJlnnBfLVbxV4blkeglPCnQCW9FM8hjzqJIUg59JZ5cMPEF7XAsZalr6jGF3G5ZANjv6DnIrwfVEm4lI1GIMbYhljwT1glhIOrHgCmlcaz'
 
 CLIENT_ID = 'kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup'
 CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK'
@@ -189,3 +187,4 @@ AUTHENTICATION_BACKENDS = [
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
