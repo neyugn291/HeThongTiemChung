@@ -108,7 +108,6 @@ class Appointment(BaseModel):
     schedule = models.ForeignKey(InjectionSchedule, on_delete=models.CASCADE)
     registered_at = models.DateTimeField(auto_now_add=True)
     is_confirmed = models.BooleanField(default=False)
-
     def __str__(self):
         return f"{self.user.username} - {self.schedule}"
 
