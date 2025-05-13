@@ -1,35 +1,24 @@
-from ckeditor.fields import RichTextField
-from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
+from django.db import models
+from cloudinary.models import CloudinaryField
+from ckeditor.fields import RichTextField
+import uuid
+from django.utils import timezone
 
 # Create your models here.
 class BaseModel(models.Model):
     active = models.BooleanField(default=True)  # Xác định trạng thái kích hoạt
-    created_date = models.DateTimeField(auto_now_add=True, null=True)  # Ngày tạo
-    updated_date = models.DateTimeField(auto_now=True, null=True)  # Ngày cập nhật
+    created_date = models.DateTimeField(auto_now_add=True,null=True)  # Ngày tạo
+    updated_date = models.DateTimeField(auto_now=True,null=True)  # Ngày cập nhật
 
     class Meta:
         abstract = True
 
-
 class User(AbstractUser, BaseModel):
     citizen_id = models.CharField(max_length=12, verbose_name='CCCD', unique=True, null=True)
-    birth_date = models.DateField(null=True, blank=True)
-    GENDER_CHOICES = [
-        ('M', 'Nam'),
-        ('F', 'Nữ'),
-        ('O', 'Khác'),
-    ]
-    gender = models.CharField(
-        max_length=1,
-        choices=GENDER_CHOICES,
-        null=True,
-        blank=True,
-    )
+
     email = models.EmailField(unique=True, null=True, blank=True)
     phone_number = models.CharField(max_length=11, unique=True, null=True, blank=True)
     avatar = CloudinaryField(null=True)
@@ -43,17 +32,14 @@ class User(AbstractUser, BaseModel):
     def __str__(self):
         return self.username
 
-
 class VaccineType(BaseModel):
     name = models.CharField(_('name'), max_length=50, unique=True)
 
     def __str__(self):
         return self.name
 
-
 def get_default_vaccine_type():
     return VaccineType.objects.get(name='COVID-19').id
-
 
 class Vaccine(BaseModel):
     class Status(models.TextChoices):
@@ -62,8 +48,8 @@ class Vaccine(BaseModel):
         PENDING_APPROVAL = 'Pending Approval', _('Chua phe duyet')
         EXPIRED = 'Expired', _('Da het han')
 
-    name = models.CharField(max_length=100, verbose_name=_('Ten Vaccine'))
-    image = models.ImageField(upload_to='vaccines', blank=True, null=True)
+    name = models.CharField(max_length=100,verbose_name=_('Ten Vaccine'))
+    image = models.ImageField(upload_to='vaccines',blank=True, null=True)
     vaccine_type = models.ForeignKey(VaccineType, null=True, blank=True, on_delete=models.CASCADE)
     manufacturer = models.CharField(max_length=100, blank=True, null=True)
     dose_count = models.IntegerField(default=10000)
@@ -83,7 +69,6 @@ class Vaccine(BaseModel):
     def __str__(self):
         return self.name
 
-
 class InjectionSite(BaseModel):
     name = models.CharField(max_length=100)
     address = models.TextField()
@@ -91,7 +76,6 @@ class InjectionSite(BaseModel):
 
     def __str__(self):
         return self.name
-
 
 class InjectionSchedule(BaseModel):
     vaccine = models.ForeignKey(Vaccine, on_delete=models.CASCADE)
@@ -111,7 +95,6 @@ class Appointment(BaseModel):
 
     def __str__(self):
         return f"{self.user.username} - {self.schedule}"
-
 
 class VaccinationRecord(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
