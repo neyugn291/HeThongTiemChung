@@ -63,11 +63,51 @@ class MyUserAdmin(UserAdmin):
     #     ('Thông tin bổ sung', {'fields': ('role', 'avatar')}),
     # )
 
+class InjectionScheduleForm(forms.ModelForm):
+    description = forms.CharField(widget=CKEditorUploadingWidget())  # Giới thiệu chi tiết lịch tiêm nếu có
+
+    class Meta:
+        model = InjectionSchedule
+        fields = '__all__'
+
+class InjectionScheduleAdmin(admin.ModelAdmin):
+    # Hiển thị các trường trong list view
+    list_display = ['id', 'vaccine', 'site', 'date', 'slot_count']
+
+    # Thêm filter để lọc theo vaccine và site
+    list_filter = ['vaccine', 'site']
+
+    # Tìm kiếm theo vaccine name hoặc site name
+    search_fields = ['vaccine__name', 'site__name']
+
+    # Cho phép chỉnh sửa nhiều record cùng lúc
+    actions = ['mark_as_active', 'mark_as_inactive']
+
+    # Thêm form tuỳ chỉnh cho việc tạo/edit InjectionSchedule
+    form = InjectionScheduleForm
+
+    # Cho phép chỉnh sửa một số thông tin trên bảng chi tiết lịch tiêm
+    fieldsets = (
+        (None, {
+            'fields': ('vaccine', 'site', 'date', 'slot_count')
+        }),
+        ('Description', {
+            'fields': ('description',),
+        }),
+    )
+
+class InjectionSiteAdmin(admin.ModelAdmin):
+    list_display = ('name', 'address', 'created_at')  # Chỉnh sửa các trường cần hiển thị trong danh sách
+    search_fields = ('name', 'address')  # Thêm khả năng tìm kiếm theo tên và địa chỉ
+    list_filter = ('created_at',)  # Thêm khả năng lọc theo ngày tạo
+    ordering = ('-created_at',)  # Sắp xếp theo ngày tạo, mới nhất lên trên
+
+
 
 admin_site.register(User, MyUserAdmin)
 
-admin_site.register(InjectionSite)
-admin_site.register(InjectionSchedule)
+admin_site.register(InjectionSite,InjectionSiteAdmin)
+admin_site.register(InjectionSchedule, InjectionScheduleAdmin)
 admin_site.register(VaccinationRecord)
 admin_site.register(Appointment)
 

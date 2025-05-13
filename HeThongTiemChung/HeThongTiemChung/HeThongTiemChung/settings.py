@@ -116,6 +116,7 @@ DATABASES = {
 
 INTERNAL_IPS = [
     '192.168.1.8', # Runserver IP Lan máy tính + port
+    '127.0.0.1'
  ]
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
@@ -175,12 +176,6 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# CLIENT_ID = 'kcsDgyInFIBjIlb3evqzpyNFJ59gCNtdNqnpbqDY'
-# CLIENT_SECRET = 'jvYbMZ8XQ9nxn8mZc7FDiVb8JFWFxuzYQHdYdp5yqhun7gux705RCR0lScOfiUgDY8thrtJV5d5Rk3QdDKXGfwk3xLECgACUxdHAfEM5KdGSXQhUQMkftOeldAULJXAE'
-
-# CLIENT_ID = 'lNexKUJK2kpPGdHBqJdbOCXjKrPD15eGHBgQRWfR'
-# CLIENT_SECRET = 'AUs0UVWlGM3PnLvcfULLGQeJlnnBfLVbxV4blkeglPCnQCW9FM8hjzqJIUg59JZ5cMPEF7XAsZalr6jGF3G5ZANjv6DnIrwfVEm4lI1GIMbYhljwT1glhIOrHgCmlcaz'
 
 CLIENT_ID = 'kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup'
 CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK'
