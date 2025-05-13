@@ -1,24 +1,22 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  Image,
   ScrollView,
   TouchableOpacity,
   StatusBar,
   Platform,
-  Animated,
+  Image,
+  StyleSheet,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Video } from "expo-av";
 import Styles from "../../components/Home/Styles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
 
-const Home = ({ navigation, route }) => {
+const StaffHome = ({ navigation, route }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -35,43 +33,25 @@ const Home = ({ navigation, route }) => {
         setLoading(false);
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu người dùng:", error.message);
-        setUserData({ firstName: "Khách" });
+        setUserData({ firstName: "Nhân viên" });
         setLoading(false);
       }
     };
     fetchUserData();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0.5,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [fadeAnim]);
+  }, []);
 
   const featureList = [
-    { icon: "calendar-search", label: "Tra cứu lịch tiêm" },
-    { icon: "calendar-star", label: "Đặt lịch hẹn" },
-    { icon: "file-download-outline", label: "Tải giấy chứng nhận" },
-    { icon: "text-box-search-outline", label: "Tra cứu lịch sử tiêm" },
+    { icon: "note-search-outline", label: "Tra cứu hồ sơ tiêm chủng", screen: "SearchRecords" },
+    { icon: "file-edit-outline", label: "Cập nhật trạng thái hồ sơ", screen: "UpdateRecords" },
+    { icon: "note-multiple-outline", label: "Thêm ghi chú sức khỏe", screen: "AddNotes" },
   ];
 
   const navItems = [
-    { icon: "home", label: "Trang chủ", screen: "Home" },
-    { icon: "bell-badge", label: "Nhắc lịch tiêm", screen: "Reminders" },
-    { icon: "message", label: "Liên hệ", screen: "Contact" },
+    { icon: "home", label: "Trang chủ", screen: "StaffHome" },
     { icon: "account", label: "Tài khoản", screen: "Account" },
   ];
 
-  const userFirstName = userData?.first_name || "Khách";
+  const userFirstName = userData?.first_name || "Nhân viên";
 
   const userAvatar = userData?.avatar ? (
     <Image
@@ -87,10 +67,6 @@ const Home = ({ navigation, route }) => {
       style={Styles.avatarIcon}
     />
   );
-
-  const handleOpenAI = () => {
-    console.log("Mở AI - Chức năng sẽ được tích hợp sau");
-  };
 
   return (
     <View style={Styles.container}>
@@ -121,24 +97,18 @@ const Home = ({ navigation, route }) => {
           )}
         </View>
 
-        <View style={{ width: "90%", margin: "auto" }}>
-          <Video
-            source={require("../../assets/Banner.mp4")}
-            style={Styles.banner}
-            resizeMode="cover"
-            shouldPlay={true}
-            isLooping={true}
-            isMuted={true}
-          />
-        </View>
-
         <View style={Styles.gridContainer}>
           {featureList.map((item, index) => (
-            <TouchableOpacity key={index} style={Styles.gridItem}>
-              <View style={Styles.iconBox}>
-                <MaterialCommunityIcons name={item.icon} size={26} color="#0c5776" />
+            <TouchableOpacity
+              key={index}
+              style={Styles.newGridItem}
+              onPress={() => navigation.navigate(item.screen)}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <MaterialCommunityIcons name={item.icon} size={24} color="#021b42" />
+                <Text style={Styles.newGridLabel}>{item.label}</Text>
               </View>
-              <Text style={Styles.iconLabel}>{item.label}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#021b42" />
             </TouchableOpacity>
           ))}
         </View>
@@ -183,28 +153,8 @@ const Home = ({ navigation, route }) => {
           ))}
         </View>
       </View>
-
-      <View style={Styles.aiContainer}>
-        <Animated.View
-          style={[
-            Styles.aiSpeechBubble,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
-        >
-          <Text style={Styles.aiSpeechText}>Xin chào, bạn có cần giúp gì không?</Text>
-        </Animated.View>
-        <TouchableOpacity style={Styles.aiButton} onPress={handleOpenAI}>
-          <Image
-            source={require("../../assets/robot.png")}
-            style={Styles.aiIcon}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
 
-export default Home;
+export default StaffHome;
