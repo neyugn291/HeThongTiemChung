@@ -1,4 +1,7 @@
 from django.http import HttpResponse
+from django.core.mail import send_mail
+from django.conf import settings
+
 
 
 def index(request):
@@ -17,38 +20,46 @@ from AppTiemChung import serializers
 
 
 class VaccineViewSet(viewsets.ModelViewSet):
-    queryset = Vaccine.objects.filter(active=True)
+    queryset = Vaccine.objects.all()
     serializer_class = serializers.VaccineSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
-# class AppointmentViewSet(viewsets.ModelViewSet):
-#     serializer_class = serializers.AppointmentSerializer
-#
-#     def get_queryset(self):
-#         # chỉ cho phép xem lịch hẹn của chính mình
-#         return Appointment.objects.filter(user=self.request.user)
-#
-#     def perform_create(self, serializer):
-#         # gán user hiện tại khi tạo lịch hẹn
-#         serializer.save(user=self.request.user)
-
 class AppointmentViewSet(viewsets.ModelViewSet):
-    serializers_class = serializers.AppointmentSerializer
+    serializer_class = serializers.AppointmentSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            return Appointment.objects.filter(user=user)
+        return Appointment.objects.none()
+
     @action(detail=True, methods=['get'])
     def reminders(self, request, pk=None):
         # GET /appointments/{id}/reminders/
         appointment = Appointment.objects.get(pk=pk, user=request.user)
-        # Gửi email hoặc push notification ở đây
-        return Response({"message": "Reminder sent!"})
+
+        # Kiểm tra nếu cuộc hẹn đã được xác nhận
+        if appointment.is_confirmed:
+            # Gửi email xác nhận
+            send_mail(
+                'Appointment Confirmed',
+                f'Your appointment on {appointment.schedule.date} at {appointment.schedule.site.name} has been confirmed.',
+                settings.EMAIL_HOST_USER,
+                [appointment.user.email],
+                fail_silently=False,
+            )
+            return Response({"message": "Reminder email sent!"})
+        else:
+            return Response({"message": "Appointment is not confirmed yet."}, status=400)
 
 
 
 
 class AppointmentAdminViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsStaffUser]
 
     def get_queryset(self):
         return Appointment.objects.all()  # Nhân viên y tế có thể xem tất cả lịch hẹn
@@ -69,13 +80,6 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointment.status = request.data.get('status')
         appointment.save()
         return Response({"message": "Status updated successfully"})
-
-    @action(methods=['put'], detail=True)
-    def add_health_note(self, request, pk=None):
-        appointment = self.get_object()
-        appointment.health_note = request.data.get('health_note')
-        appointment.save()
-        return Response({"message": "Health note added successfully"})
 
     @action(methods=['get'], detail=False)
     def history(self, request):
@@ -141,6 +145,8 @@ import io
 from django.http import FileResponse
 from reportlab.pdfgen import canvas
 from datetime import datetime
+import datetime
+
 
 
 class VaccinationRecordViewSet(viewsets.ViewSet):
@@ -151,6 +157,39 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         records = VaccinationRecord.objects.filter(user=request.user).select_related('vaccine', 'site')
         data = serializers.VaccinationRecordSerializer(records, many=True).data
         return Response(data)
+
+    @action(detail=True, methods=['get'], url_path='certificate')
+    def download_single_certificate(self, request, pk=None):
+        try:
+            record = VaccinationRecord.objects.select_related('vaccine', 'site').get(pk=pk)
+        except VaccinationRecord.DoesNotExist:
+            return Response({'message': 'Vaccination record not found'}, status=404)
+
+        # ✅ Kiểm tra người dùng có phải chủ sở hữu bản ghi không
+        if record.user != request.user:
+            return Response({'message': 'Permission denied'}, status=403)
+
+        # ✅ Tạo PDF cho một bản ghi
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer)
+
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(200, 800, "Vaccination Certificate")
+
+        p.setFont("Helvetica", 12)
+        p.drawString(50, 770, f"Name: {request.user.get_full_name()}")
+        p.drawString(50, 755, f"Citizen ID: {request.user.citizen_id}")
+        p.drawString(50, 740, f"Issue Date: {datetime.today().strftime('%Y-%m-%d')}")
+
+        p.drawString(50, 710, f"Vaccine: {record.vaccine.name}")
+        p.drawString(50, 690, f"Dose: {record.dose_number}")
+        p.drawString(50, 670, f"Date: {record.injection_date}")
+        p.drawString(50, 650, f"Site: {record.site.name if record.site else 'N/A'}")
+
+        p.showPage()
+        p.save()
+        buffer.seek(0)
+
 
     @action(detail=False, methods=['get'], url_path='certificate')
     def download_certificate(self, request):
@@ -180,23 +219,37 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
 
         return FileResponse(buffer, as_attachment=True, filename='vaccination_certificate.pdf')
 
+    @action(detail=True, methods=['put'], url_path='add-health-note')
+    def add_health_note(self, request, pk=None):
+        """
+        API để thêm hoặc cập nhật health note vào VaccinationRecord.
+        """
+        try:
+            record = VaccinationRecord.objects.get(pk=pk, user=request.user)
+        except VaccinationRecord.DoesNotExist:
+            return Response({'message': 'Vaccination record not found'}, status=status.HTTP_404_NOT_FOUND)
 
-class InjectionScheduleViewSet(viewsets.ViewSet):
-    """
-    API cho việc quản lý lịch tiêm.
-    Người dùng phải là admin mới có thể truy cập.
-    """
+        # Kiểm tra xem người dùng có quyền truy cập bản ghi này không
+        if record.user != request.user:
+            return Response({'message': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Lấy health note từ request
+        health_note = request.data.get('health_note')
+
+        if not health_note:
+            return Response({'message': 'Health note is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Cập nhật health_note vào bản ghi
+        record.health_note = health_note
+        record.save()
+
+        return Response({'message': 'Health note updated successfully', 'health_note': record.health_note})
+
+
+class InjectionScheduleViewSet(viewsets.ModelViewSet):
     queryset = InjectionSchedule.objects.all()  # Lấy tất cả lịch tiêm
     serializer_class = InjectionScheduleSerializer  # Serializer để chuyển đổi dữ liệu thành JSON
-    permission_classes = [IsAdminUser]  # Chỉ admin mới có quyền truy cập
-
-    def get_permissions(self):
-        """
-        Thiết lập quyền truy cập tùy theo action.
-        """
-        if self.action in ['create', 'update', 'destroy']:
-            return [permissions.IsAdminUser()]  # Chỉ admin mới có quyền thực hiện các hành động này
-        return [permissions.IsAuthenticated()]  # Người dùng xác thực có thể xem lịch tiêm
+    permissions_classes = [permissions.IsAuthenticated()]
 
     @action(detail=True, methods=['get'])
     def check_availability(self, request, pk=None):
@@ -219,36 +272,7 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
         serializer = InjectionScheduleSerializer(upcoming_schedules, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    def all_schedules(self, request):
-        """
-        API cho tất cả người dùng xem tất cả lịch tiêm (bao gồm lịch tiêm trong quá khứ và sắp tới).
-        """
-        view_past = request.query_params.get('view_past', 'false')  # Lấy tham số query view_past
 
-        if view_past.lower() == 'true':
-            # Lấy tất cả lịch tiêm bao gồm cả đã diễn ra và sắp tới
-            all_schedules = InjectionSchedule.objects.all()
-        else:
-            # Chỉ lấy lịch tiêm sắp tới
-            all_schedules = InjectionSchedule.objects.filter(date__gte=datetime.date.today())
-
-        serializer = InjectionScheduleSerializer(all_schedules, many=True)
-        return Response(serializer.data)
-
-    def create(self, request):
-        """
-        Tạo mới lịch tiêm.
-        """
-        serializer = InjectionScheduleSerializer(data=request.data)
-
-        if serializer.is_valid():
-            # Lưu lịch tiêm mới vào cơ sở dữ liệu
-            schedule = serializer.save()
-
-            return Response(InjectionScheduleSerializer(schedule).data, status=201)  # Trả về dữ liệu đã tạo
-        else:
-            return Response(serializer.errors, status=400)  # Trả về lỗi nếu dữ liệu không hợp lệ
 
 class InjectionSiteViewSet(viewsets.ModelViewSet):
     queryset = InjectionSite.objects.all()
