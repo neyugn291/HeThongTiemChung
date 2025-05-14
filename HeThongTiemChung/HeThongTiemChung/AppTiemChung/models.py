@@ -140,13 +140,12 @@ class Appointment(BaseModel):
             else:
                 raise ValueError("Lịch tiêm đã hết chỗ!")
 
-
         super().save(*args, **kwargs)
 
         if self.is_inoculated and not hasattr(self, 'vaccinationrecord'):
             self.create_vaccination_record()
 
-        super().save(*args, **kwargs)
+
 
     def create_vaccination_record(self):
         # Tạo bản ghi tiêm vaccine khi đã xác nhận tiêm
@@ -156,10 +155,10 @@ class Appointment(BaseModel):
         ).count()
         VaccinationRecord.objects.create(
             user=self.user,
-            vaccine=self.schedule.vaccine,  # Giả sử lịch tiêm có trường vaccine
+            vaccine=self.schedule.vaccine,
             dose_number=previous_doses + 1,
-            injection_date=self.registered_at.date(),  # Ngày tiêm là ngày đăng ký
-            site=self.schedule.site,  # Giả sử lịch tiêm có trường site
+            injection_date=self.schedule.date,
+            site=self.schedule.site,
         )
 
     class Meta:
@@ -171,6 +170,7 @@ class VaccinationRecord(BaseModel):
     dose_number = models.PositiveIntegerField()
     injection_date = models.DateField()
     site = models.ForeignKey(InjectionSite, on_delete=models.SET_NULL, null=True)
+    health_note = models.TextField(default=None, null=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.vaccine.name} - Dose {self.dose_number}"
