@@ -177,8 +177,8 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-CLIENT_ID = 'kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup'
-CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK'
+CLIENT_ID = 'WWewSaD7MJGHHfKOoDuhsPgsHNdO4m2urewmmZuA'
+CLIENT_SECRET = '74XfDiekraHzb1biRNcEtaelcrBvtvTCBxosi9ESPmdfrooJh8t8WuKP7lXtLS83fXbtanj7m7Z7yQHrpJxsptx4IgODgb96x2ScPDPkkXnirgDOX3AisR3OpdU0OVGt'
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # bắt buộc
@@ -188,3 +188,9 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'dhnguyen243@gmail.com'  # Thay bằng email thật
+EMAIL_HOST_PASSWORD = 'iqhm vaao xybp qcjp'  # Dùng app password, KHÔNG dùng password tài khoản

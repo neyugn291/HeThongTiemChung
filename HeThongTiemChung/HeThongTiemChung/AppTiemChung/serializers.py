@@ -85,17 +85,19 @@ class VaccinationRecordSerializer(ModelSerializer):
 
     class Meta:
         model = VaccinationRecord
-        fields = [
-            'id',
-            'vaccine',
-            'vaccine_name',
-            'dose_number',
-            'injection_date',
-            'site',
-            'site_name',
-            'site_address',
-            'created_date'
-        ]
+        # fields = [
+        #     'id',
+        #     'vaccine',
+        #     'vaccine_name',
+        #     'dose_number',
+        #     'injection_date',
+        #     'site',
+        #     'site_name',
+        #     'site_address',
+        #     'created_date'
+        #     'health_note'
+        # ]
+        fields = '__all__'
 
 
 class AppointmentSerializer(ModelSerializer):
