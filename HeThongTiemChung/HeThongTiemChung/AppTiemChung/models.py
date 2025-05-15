@@ -108,6 +108,7 @@ class Appointment(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     schedule = models.ForeignKey(InjectionSchedule, on_delete=models.CASCADE)
     registered_at = models.DateTimeField(auto_now_add=True)
+    reminder_enabled = models.BooleanField(default=False)
     is_confirmed = models.BooleanField(default=False)
     is_inoculated = models.BooleanField(default=False)  # Trường xác nhận đã tiêm hay chưa
 
