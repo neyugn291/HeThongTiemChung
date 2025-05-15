@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.core.mail import send_mail
 from django.conf import settings
-
+from rest_framework.viewsets import ModelViewSet
 
 
 def index(request):
@@ -17,6 +17,12 @@ from .serializers import AppointmentSerializer, InjectionScheduleSerializer,Inje
 from .permissions import IsAdminUser, IsStaffUser
 
 from AppTiemChung import serializers
+
+from rest_framework import permissions
+
+from rest_framework.exceptions import NotAuthenticated
+
+
 
 
 class VaccineViewSet(viewsets.ModelViewSet):
@@ -36,7 +42,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         return Appointment.objects.none()
 
     @action(detail=True, methods=['get'])
-    def reminders(self, request, pk=None):
+    def send_confirmation(self, request, pk=None):
         # GET /appointments/{id}/reminders/
         appointment = Appointment.objects.get(pk=pk, user=request.user)
 
@@ -53,6 +59,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             return Response({"message": "Reminder email sent!"})
         else:
             return Response({"message": "Appointment is not confirmed yet."}, status=400)
+
 
 
 
@@ -89,7 +96,7 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
 
 
 
-class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
+class UserViewSet(ModelViewSet):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
@@ -107,14 +114,16 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     def get_permissions(self):
         if self.action in ['current_user', 'history']:
             return [permissions.IsAuthenticated()]
+        elif self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAdminUser()]  # Chỉ admin mới thao tác với người dùng khác
         return [permissions.AllowAny()]
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     if serializer.is_valid():
+    #         user = serializer.save()
+    #         return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False,
             permission_classes=[permissions.IsAuthenticated])
@@ -122,14 +131,17 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         """
         Lấy hoặc cập nhật thông tin người dùng hiện tại
         """
+
         u = request.user
+        if not u.is_authenticated:
+            raise NotAuthenticated("Bạn chưa đăng nhập")
         if request.method.__eq__('PATCH'):
             for k, v in request.data.items():
                 if k.__eq__('password'):
                     u.set_password(v)
                 elif k.__eq__('avatar'):
                     if v:
-                        u.avatar = v;
+                        u.avatar = v
                 elif k.__eq__('gender'):
                     u.gender = v
                 elif k.__eq__('birth_date'):
