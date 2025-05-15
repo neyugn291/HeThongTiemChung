@@ -2,99 +2,98 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   FlatList,
   TouchableOpacity,
   StatusBar,
   StyleSheet,
   ActivityIndicator,
-  Alert,
+  TextInput,
+  Switch,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
 
 const InjectionSearch = ({ navigation }) => {
-  const [appointments, setAppointments] = useState([]);
-  const [filteredAppointments, setFilteredAppointments] = useState([]);
-  const [displayedAppointments, setDisplayedAppointments] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [filteredSchedules, setFilteredSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewPast, setViewPast] = useState(false);
   const [page, setPage] = useState(1);
-  const pageSize = 10; // Số lượng lịch hẹn hiển thị mỗi lần tải
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchAppointments();
-  }, []);
+    fetchSchedules();
+  }, [viewPast]);
 
-  const fetchAppointments = async () => {
+  const fetchSchedules = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).get(endpoints["appointments"]);
-      const now = new Date();
-
-      // Lọc lịch hẹn sắp tới và sắp xếp theo ngày gần nhất
-      const InjectionSearch = response.data
-        .filter((appointment) => {
-          const appointmentDate = new Date(appointment.appointment_date);
-          return (
-            appointment.status !== "completed" && // Chỉ lấy lịch hẹn chưa hoàn thành
-            appointmentDate >= now // Chỉ lấy lịch hẹn từ hiện tại trở đi
-          );
-        })
-        .sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
-
-      setAppointments(InjectionSearch);
-      setFilteredAppointments(InjectionSearch);
-
-      // Hiển thị trang đầu tiên (lazy loading)
-      setDisplayedAppointments(InjectionSearch.slice(0, pageSize));
-      setPage(1);
+      const response = await authApis(token).get(endpoints["allSchedules"], {
+        params: { view_past: viewPast ? "true" : "false" },
+      });
+      setSchedules(response.data);
+      filterSchedules(response.data, searchQuery, 1);
     } catch (error) {
-      console.error("Error fetching appointments:", error);
-      Alert.alert("Lỗi", "Không thể tải danh sách lịch hẹn.");
+      console.error("Error fetching schedules:", error);
+      setSchedules([]);
+      setFilteredSchedules([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Xử lý tìm kiếm theo tên vaccine
-  const handleSearch = (keyword) => {
-    setSearchKeyword(keyword);
-    if (keyword.trim() === "") {
-      setFilteredAppointments(appointments);
-    } else {
-      const filtered = appointments.filter((appointment) =>
-        appointment.vaccine?.name.toLowerCase().includes(keyword.toLowerCase())
+  const filterSchedules = (data, query, pageNum) => {
+    let filtered = data;
+
+    if (query) {
+      filtered = filtered.filter((schedule) =>
+        schedule.vaccine.name.toLowerCase().includes(query.toLowerCase())
       );
-      setFilteredAppointments(filtered);
     }
-    setPage(1);
-    setDisplayedAppointments(filteredAppointments.slice(0, pageSize));
+
+    const startIndex = (pageNum - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedSchedules = filtered.slice(startIndex, endIndex);
+
+    setFilteredSchedules((prev) =>
+      pageNum === 1 ? paginatedSchedules : [...prev, ...paginatedSchedules]
+    );
   };
 
-  // Xử lý lazy loading khi cuộn đến cuối danh sách
-  const loadMoreAppointments = () => {
-    if (displayedAppointments.length >= filteredAppointments.length) return;
+  const loadMoreSchedules = () => {
+    if (isLoadingMore || filteredSchedules.length >= schedules.length) return;
 
+    setIsLoadingMore(true);
     const nextPage = page + 1;
-    const newAppointments = filteredAppointments.slice(0, nextPage * pageSize);
-    setDisplayedAppointments(newAppointments);
+    filterSchedules(schedules, searchQuery, nextPage);
     setPage(nextPage);
+    setIsLoadingMore(false);
   };
 
-  const renderAppointment = ({ item }) => (
-    <View style={styles.appointmentCard}>
-      <Text style={styles.appointmentText}>
-        Vaccine: {item.vaccine?.name || "Không xác định"}
-      </Text>
-      <Text style={styles.appointmentText}>
-        Ngày hẹn: {new Date(item.appointment_date).toLocaleDateString("vi-VN")}
-      </Text>
-      <Text style={styles.appointmentText}>
-        Trạng thái: {item.status === "scheduled" ? "Đã lên lịch" : "Đang chờ"}
-      </Text>
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    setPage(1);
+    filterSchedules(schedules, query, 1);
+  };
+
+  const renderSchedule = ({ item }) => (
+    <View style={styles.scheduleCard}>
+      <View style={styles.scheduleInfo}>
+        <Text style={styles.scheduleText}>
+          Vaccine: {item.vaccine?.name || "Không xác định"}
+        </Text>
+        <Text style={styles.scheduleText}>
+          Ngày: {new Date(item.date).toLocaleDateString("vi-VN")}
+        </Text>
+        <Text style={styles.scheduleText}>
+          Địa điểm: {item.site?.name || "Không xác định"}
+        </Text>
+        <Text style={styles.scheduleText}>Số lượng: {item.slot_count}</Text>
+      </View>
     </View>
   );
 
@@ -105,38 +104,52 @@ const InjectionSearch = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lịch Hẹn Tiêm Sắp Tới</Text>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          value={searchKeyword}
-          onChangeText={handleSearch}
-          placeholder="Tìm kiếm theo tên vaccine..."
-          placeholderTextColor="#021b42"
-        />
-        <MaterialCommunityIcons name="magnify" size={24} color="#021b42" style={styles.searchIcon} />
+        <Text style={styles.headerTitle}>Tra Cứu Lịch Tiêm</Text>
+        <View style={styles.placeholder} />
       </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#0c5776" style={styles.loader} />
       ) : (
-        <FlatList
-          data={displayedAppointments}
-          renderItem={renderAppointment}
-          keyExtractor={(item) => item.id.toString()}
-          onEndReached={loadMoreAppointments}
-          onEndReachedThreshold={0.5}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              {searchKeyword
-                ? "Không tìm thấy lịch hẹn với từ khóa này."
-                : "Không có lịch hẹn sắp tới."}
-            </Text>
-          }
-          contentContainerStyle={styles.listContainer}
-        />
+        <View style={styles.contentContainer}>
+          <View style={styles.filterContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Tìm kiếm theo tên vaccine..."
+              value={searchQuery}
+              onChangeText={handleSearch}
+            />
+            <View style={styles.switchContainer}>
+              <Text style={styles.switchLabel}>Xem lịch đã qua</Text>
+              <Switch
+                value={viewPast}
+                onValueChange={(value) => {
+                  setViewPast(value);
+                  setPage(1);
+                }}
+                trackColor={{ false: "#767577", true: "#0c5776" }}
+                thumbColor={viewPast ? "#f4f3f4" : "#f4f3f4"}
+              />
+            </View>
+          </View>
+
+          <FlatList
+            data={filteredSchedules}
+            renderItem={renderSchedule}
+            keyExtractor={(item) => item.id.toString()}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>Không có lịch tiêm nào.</Text>
+            }
+            contentContainerStyle={styles.listContainer}
+            onEndReached={loadMoreSchedules}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              isLoadingMore ? (
+                <ActivityIndicator size="small" color="#0c5776" style={styles.loader} />
+              ) : null
+            }
+          />
+        </View>
       )}
     </View>
   );
@@ -148,57 +161,65 @@ const styles = StyleSheet.create({
     backgroundColor: "#6a97a4",
   },
   header: {
-    height: 50,
+    height: 120,
     backgroundColor: "#0c5776",
-    justifyContent: "flex-start",
-    paddingLeft: 10,
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
     alignItems: "center",
     flexDirection: "row",
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+    zIndex: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
   },
   backButton: {
     padding: 10,
-    position: "relative",
-    top: 30,
-    left: 0,
-    zIndex: 1,
+    marginTop: 30,
   },
   headerTitle: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
-    position: "relative",
-    top: 30,
-    left: 20,
+    marginTop: 30,
+    marginLeft: 5,
   },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 90,
-    marginHorizontal: 16,
-    marginBottom: 16,
+  placeholder: {
+    width: 44,
+  },
+  contentContainer: {
+    flex: 1,
+    marginTop: 20,
+  },
+  filterContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
   searchInput: {
-    flex: 1,
-    backgroundColor: "#f8dad0",
-    borderWidth: 1,
-    borderColor: "#f9ccbd",
-    borderRadius: 8,
+    backgroundColor: "#fff",
     padding: 10,
+    borderRadius: 8,
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  switchLabel: {
     fontSize: 16,
     color: "#021b42",
-  },
-  searchIcon: {
-    marginLeft: 10,
   },
   listContainer: {
     padding: 16,
     paddingBottom: 20,
   },
-  appointmentCard: {
+  scheduleCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     backgroundColor: "#f8dad0",
     borderRadius: 8,
     padding: 16,
@@ -207,18 +228,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
   },
-  appointmentText: {
+  scheduleInfo: {
+    flex: 1,
+  },
+  scheduleText: {
     fontSize: 16,
     color: "#021b42",
     marginBottom: 5,
-  },
-  loader: {
-    marginTop: 20,
   },
   emptyText: {
     fontSize: 16,
     color: "#021b42",
     textAlign: "center",
+    marginTop: 20,
+  },
+  loader: {
     marginTop: 20,
   },
 });

@@ -33,13 +33,16 @@ const vietnameseMonths = [
 ];
 
 const DownloadCertificate = ({ navigation }) => {
-  const [vaccinationRecords, setVaccinationRecords] = useState([]);
-  const [filteredRecords, setFilteredRecords] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [downloadingId, setDownloadingId] = useState(null); // ID của bản ghi đang tải
+  const [vaccinationRecords, setVaccinationRecords] = useState([]); // Toàn bộ dữ liệu từ API
+  const [filteredRecords, setFilteredRecords] = useState([]); // Dữ liệu hiển thị (phân trang)
+  const [loading, setLoading] = useState(false); // Trạng thái tải ban đầu
+  const [downloadingId, setDownloadingId] = useState(null); // ID bản ghi đang tải
   const [filterMonth, setFilterMonth] = useState(""); // Bộ lọc tháng
   const [filterYear, setFilterYear] = useState(""); // Bộ lọc năm
   const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [page, setPage] = useState(1); // Trang hiện tại
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // Trạng thái tải thêm
+  const itemsPerPage = 4; // Số lượng bản ghi mỗi trang
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
   const currentYear = new Date().getFullYear();
@@ -59,7 +62,7 @@ const DownloadCertificate = ({ navigation }) => {
         (a, b) => new Date(b.injection_date) - new Date(a.injection_date)
       );
       setVaccinationRecords(sortedRecords);
-      filterRecords(sortedRecords, filterMonth, filterYear); // Áp dụng bộ lọc ngay sau khi tải
+      filterRecords(sortedRecords, filterMonth, filterYear, 1); // Tải trang đầu tiên
     } catch (error) {
       console.error("Error fetching vaccination records:", error);
       Alert.alert("Lỗi", "Không thể tải danh sách tiêm chủng.");
@@ -68,8 +71,8 @@ const DownloadCertificate = ({ navigation }) => {
     }
   };
 
-  // Xử lý lọc theo tháng và năm (phía client)
-  const filterRecords = (records, month, year) => {
+  // Lọc và phân trang dữ liệu
+  const filterRecords = (records, month, year, pageNum) => {
     let filtered = records;
 
     // Lọc theo tháng và năm
@@ -85,7 +88,26 @@ const DownloadCertificate = ({ navigation }) => {
       });
     }
 
-    setFilteredRecords(filtered);
+    // Phân trang: chỉ lấy dữ liệu từ startIndex đến endIndex
+    const startIndex = (pageNum - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedRecords = filtered.slice(startIndex, endIndex);
+
+    // Cập nhật danh sách hiển thị
+    setFilteredRecords((prev) =>
+      pageNum === 1 ? paginatedRecords : [...prev, ...paginatedRecords]
+    );
+  };
+
+  // Tải thêm dữ liệu khi cuộn đến cuối danh sách
+  const loadMoreRecords = () => {
+    if (isLoadingMore || filteredRecords.length >= vaccinationRecords.length) return;
+
+    setIsLoadingMore(true);
+    const nextPage = page + 1;
+    filterRecords(vaccinationRecords, filterMonth, filterYear, nextPage);
+    setPage(nextPage);
+    setIsLoadingMore(false);
   };
 
   // Xử lý áp dụng bộ lọc
@@ -95,7 +117,8 @@ const DownloadCertificate = ({ navigation }) => {
       Alert.alert("Lỗi", validation.error);
       return;
     }
-    filterRecords(vaccinationRecords, filterMonth, filterYear);
+    setPage(1); // Reset về trang đầu khi áp dụng bộ lọc
+    filterRecords(vaccinationRecords, filterMonth, filterYear, 1);
     setIsFilterVisible(false);
   };
 
@@ -103,7 +126,8 @@ const DownloadCertificate = ({ navigation }) => {
   const clearFilter = () => {
     setFilterMonth("");
     setFilterYear("");
-    filterRecords(vaccinationRecords, "", "");
+    setPage(1); // Reset về trang đầu khi xóa bộ lọc
+    filterRecords(vaccinationRecords, "", "", 1);
     setIsFilterVisible(false);
   };
 
@@ -248,6 +272,13 @@ const DownloadCertificate = ({ navigation }) => {
               </Text>
             }
             contentContainerStyle={styles.listContainer}
+            onEndReached={loadMoreRecords} // Gọi hàm loadMoreRecords khi cuộn đến cuối
+            onEndReachedThreshold={0.5} // Kích hoạt khi cuộn đến 50% cuối danh sách
+            ListFooterComponent={
+              isLoadingMore ? (
+                <ActivityIndicator size="small" color="#0c5776" style={styles.loader} />
+              ) : null
+            }
           />
           {filteredRecords.length > 0 && (
             <TouchableOpacity
@@ -368,7 +399,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   recordCard: {
-    position: "relative", // Đảm bảo card là tham chiếu cho vị trí absolute
+    position: "relative",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",

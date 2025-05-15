@@ -15,7 +15,6 @@ from .permissions import IsAdminUser, IsStaffUser
 
 from AppTiemChung import serializers
 
-
 class VaccineViewSet(viewsets.ModelViewSet):
     queryset = Vaccine.objects.filter(active=True)
     serializer_class = serializers.VaccineSerializer
@@ -141,6 +140,7 @@ import io
 from django.http import FileResponse
 from reportlab.pdfgen import canvas
 from datetime import datetime
+import datetime
 
 
 class VaccinationRecordViewSet(viewsets.ViewSet):

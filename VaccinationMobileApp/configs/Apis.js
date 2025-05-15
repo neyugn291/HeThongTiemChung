@@ -8,6 +8,11 @@ export const endpoints = {
   currentUser: "users/current-user/",
   recordSearch: "records/history/",
   downloadCertificate: "records/certificate/",
+  injectionSites: "sites/",
+  allSchedules: "schedules/all_schedules/",
+  upcomingSchedules: "schedules/upcoming_schedules/",
+  appointments: "appointments/",
+  vaccines: "vaccines/",
 };
 
 export const authApis = (token) => {
