@@ -461,9 +461,13 @@ from firebase_admin import credentials, db
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import os
+
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+key_path = os.path.join(base_dir,'HeThongTiemChung', 'secure_keys', 'serviceAccountKey.json')
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate('serviceAccountKey.json')  # 🔁 Đổi đường dẫn file JSON
+    cred = credentials.Certificate(key_path)  # 🔁 Đổi đường dẫn file JSON
     firebase_admin.initialize_app(cred, {
         'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
     })
