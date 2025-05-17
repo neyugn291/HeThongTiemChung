@@ -102,6 +102,13 @@ class InjectionSiteAdmin(admin.ModelAdmin):
     list_filter = ('created_at',)  # Thêm khả năng lọc theo ngày tạo
     ordering = ('-created_at',)  # Sắp xếp theo ngày tạo, mới nhất lên trên
 
+from django.contrib import admin
+from .models import ChatMessage
+
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'text', 'timestamp')
+    search_fields = ('sender', 'text')
+
 
 
 admin_site.register(User, MyUserAdmin)
@@ -113,3 +120,5 @@ admin_site.register(Appointment)
 
 admin_site.register(VaccineType, VaccineTypeAdmin)
 admin_site.register(Vaccine, VaccineAdmin)
+
+admin_site.register(ChatMessage, ChatMessageAdmin)
