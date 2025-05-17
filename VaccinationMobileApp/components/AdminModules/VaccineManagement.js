@@ -245,7 +245,7 @@ const VaccineManagement = ({ navigation }) => {
         <View style={styles.contentContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm kiếm theo tên vaccine..."
+            placeholder="Nhập tên vaccine cần tìm..."
             value={searchQuery}
             onChangeText={handleSearch}
           />
