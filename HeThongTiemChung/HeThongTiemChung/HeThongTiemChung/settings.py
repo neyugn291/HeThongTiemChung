@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'ckeditor',
     'ckeditor_uploader',
     'debug_toolbar',
-    'corsheaders'
+    'corsheaders',
+    'chatbot',
 ]
 
 REST_FRAMEWORK = {
@@ -86,7 +87,11 @@ ROOT_URLCONF = 'HeThongTiemChung.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        # 'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),  # thư mục chung nếu có
+            BASE_DIR / 'AppTiemChung' / 'templates',  # thư mục templates app
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -96,6 +101,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
             ],
         },
+        # 'DIRS': [BASE_DIR / 'VaccinationApp' / 'templates'],
     },
 ]
 
@@ -177,8 +183,8 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-CLIENT_ID = 'WWewSaD7MJGHHfKOoDuhsPgsHNdO4m2urewmmZuA'
-CLIENT_SECRET = '74XfDiekraHzb1biRNcEtaelcrBvtvTCBxosi9ESPmdfrooJh8t8WuKP7lXtLS83fXbtanj7m7Z7yQHrpJxsptx4IgODgb96x2ScPDPkkXnirgDOX3AisR3OpdU0OVGt'
+CLIENT_ID = '57a5EHBjxyxNrliDkAZ79Yp0Jm1JhnXHqdnOwhxS'
+CLIENT_SECRET = 'Zb4sdownOVsENJwlJjAoutalA1ldsOZjrANecYrgjkndRpTlfhfjToGrTCnkEXPQFwm7KH0jaNOSFPPMdytq61HlPe5DnTcMf0KqhwCd39eiEEL1stJVrFQ82bPWHhCT'
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # bắt buộc

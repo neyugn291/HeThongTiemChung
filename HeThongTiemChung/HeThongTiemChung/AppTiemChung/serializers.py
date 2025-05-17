@@ -3,13 +3,16 @@ from datetime import date, datetime
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
-from .models import Vaccine, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite
+from .models import Vaccine, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite, ChatMessage
 
 
 class VaccineSerializer(ModelSerializer):
     class Meta:
         model = Vaccine
-        fields = ['id', 'name']
+        fields = '__all__'
+
+    def get_vaccine_type_name(self, obj):
+        return obj.vaccine_type.name if obj.vaccine_type else None
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -115,3 +118,8 @@ class InjectionSiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = InjectionSite
         fields = ['id', 'name', 'address', 'phone']
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatMessage
+        fields = ['id', 'sender', 'text', 'timestamp']

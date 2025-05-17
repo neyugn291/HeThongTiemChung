@@ -178,3 +178,11 @@ class VaccinationRecord(BaseModel):
 
     class Meta:
         unique_together = ('user', 'vaccine', 'dose_number')
+
+class ChatMessage(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField()
+    timestamp = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.sender}: {self.text[:30]}"
