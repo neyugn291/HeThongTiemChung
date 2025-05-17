@@ -147,7 +147,6 @@ class Appointment(BaseModel):
             self.create_vaccination_record()
 
 
-
     def create_vaccination_record(self):
         # Tạo bản ghi tiêm vaccine khi đã xác nhận tiêm
         previous_doses = VaccinationRecord.objects.filter(

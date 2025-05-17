@@ -147,6 +147,7 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointment.is_confirmed = confirm_value
         appointment.save()
 
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         if confirm_value:
             send_mail(
                 'Appointment Confirmed',
@@ -179,7 +180,7 @@ class UserViewSet(viewsets.ViewSet):
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
 
-    @action(methods=['get'],url_path='current-user/history', detail=False, permission_classes=[permissions.IsAuthenticated])
+    @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
     def history(self, request):
         """
         Lấy lịch sử cuộc hẹn của người dùng hiện tại
@@ -192,48 +193,14 @@ class UserViewSet(viewsets.ViewSet):
     def get_permissions(self):
         if self.action in ['current_user', 'history']:
             return [permissions.IsAuthenticated()]
-        elif self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAdminUser()]  # Chỉ admin mới thao tác với người dùng khác
         return [permissions.AllowAny()]
 
-    def list(self, request):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
-
-    def create(self, request):
-        serializer = UserSerializer(data=request.data)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            user = serializer.save()
+            return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def update(self, request, pk=None):
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = UserSerializer(user, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, pk=None):
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False,
             permission_classes=[permissions.IsAuthenticated])
@@ -241,20 +208,16 @@ class UserViewSet(viewsets.ViewSet):
         """
         Lấy hoặc cập nhật thông tin người dùng hiện tại
         """
-
         u = request.user
         if not u.is_authenticated:
             raise NotAuthenticated("Bạn chưa đăng nhập")
         if request.method.__eq__('PATCH'):
-            serializer = serializers.UserSerializer(u, data=request.data, partial=True)
-            if serializer.is_valid():
-                validated_data = serializer.validated_data
             for k, v in request.data.items():
                 if k.__eq__('password'):
                     u.set_password(v)
                 elif k.__eq__('avatar'):
                     if v:
-                        u.avatar = v
+                        u.avatar = v;
                 elif k.__eq__('gender'):
                     u.gender = v
                 elif k.__eq__('birth_date'):
@@ -269,8 +232,8 @@ class UserViewSet(viewsets.ViewSet):
 import io
 from django.http import FileResponse
 from reportlab.pdfgen import canvas
-
-
+from datetime import datetime
+import datetime
 
 
 class VaccinationRecordViewSet(viewsets.ViewSet):
