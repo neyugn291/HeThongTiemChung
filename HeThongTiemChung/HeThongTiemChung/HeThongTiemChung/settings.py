@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import os
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,6 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['192.168.1.20',
                  '127.0.0.1']  # Runserver IP Lan máy tính + port
+
 
 # Application definition
 
@@ -121,7 +122,7 @@ DATABASES = {
 INTERNAL_IPS = [
     '192.168.1.20',  # Runserver IP Lan máy tính + port
     '127.0.0.1'
-]
+ ]
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
@@ -200,3 +201,4 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'dhnguyen243@gmail.com'  # Thay bằng email thật
 EMAIL_HOST_PASSWORD = 'iqhm vaao xybp qcjp'  # Dùng app password, KHÔNG dùng password tài khoản
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+

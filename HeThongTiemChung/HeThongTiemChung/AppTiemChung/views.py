@@ -1,9 +1,9 @@
+from django.http import HttpResponse
+from django.core.mail import send_mail
+from django.conf import settings
+from rest_framework.viewsets import ModelViewSet
 from datetime import datetime
 
-from django.conf import settings
-from django.core.mail import send_mail
-from django.http import HttpResponse
-from rest_framework.viewsets import ModelViewSet
 
 
 def index(request):
@@ -26,6 +26,8 @@ from rest_framework.exceptions import NotAuthenticated
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+
+
 
 
 class VaccineViewSet(viewsets.ModelViewSet):
@@ -93,6 +95,8 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         except Appointment.DoesNotExist:
             raise Http404
 
+
+
     @action(methods=['get'], detail=False)
     def history(self, request):
         appointments = Appointment.objects.all()
@@ -159,8 +163,6 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
 
     @action(detail=True, methods=['patch'], url_path='mark-inoculated')
-
-
     def mark_inoculated(self, request, pk=None):
         appointment = self.get_queryset().filter(pk=pk).first()
         if not appointment:
@@ -179,7 +181,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
 
-    @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
+    @action(methods=['get'],url_path='current-user/history', detail=False, permission_classes=[permissions.IsAuthenticated])
     def history(self, request):
         """
         Lấy lịch sử cuộc hẹn của người dùng hiện tại
@@ -192,6 +194,8 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     def get_permissions(self):
         if self.action in ['current_user', 'history']:
             return [permissions.IsAuthenticated()]
+        elif self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAdminUser()]  # Chỉ admin mới thao tác với người dùng khác
         return [permissions.AllowAny()]
 
     def create(self, request, *args, **kwargs):
@@ -207,6 +211,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         """
         Lấy hoặc cập nhật thông tin người dùng hiện tại
         """
+
         u = request.user
         if not u.is_authenticated:
             raise NotAuthenticated("Bạn chưa đăng nhập")
@@ -276,6 +281,7 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         buffer.seek(0)
 
         return FileResponse(buffer, as_attachment=True, filename='vaccination_{pk}_certificate.pdf')
+
 
     @action(detail=False, methods=['get'], url_path='certificate')
     def download_certificate(self, request):
@@ -406,30 +412,31 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
 
+
 class InjectionSiteViewSet(viewsets.ModelViewSet):
     queryset = InjectionSite.objects.all()
     serializer_class = InjectionSiteSerializer
     permission_classes = [IsAdminUser]
 
-
 def chat_view(request):
     return render(request, 'chat/chat.html', {
         'username': request.user.username
     })
-
-
 import firebase_admin
 from firebase_admin import credentials, db
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import os
 
-# if not firebase_admin._apps:
-#     cred = credentials.Certificate('serviceAccountKey.json')  # 🔁 Đổi đường dẫn file JSON
-#     firebase_admin.initialize_app(cred, {
-#         'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
-#     })
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+key_path = os.path.join(base_dir,'HeThongTiemChung', 'secure_keys', 'serviceAccountKey.json')
 
+if not firebase_admin._apps:
+    cred = credentials.Certificate(key_path)  # 🔁 Đổi đường dẫn file JSON
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
+    })
 
 class ChatMessageViewSet(viewsets.ViewSet):
     queryset = ChatMessage.objects.all().order_by('-timestamp')
@@ -486,3 +493,6 @@ class ChatMessageViewSet(viewsets.ViewSet):
                 'sender': instance.sender.username if instance.sender else 'Unknown',
                 'timestamp': int(instance.timestamp.timestamp() * 1000)  # mili giây
             })
+
+
+
