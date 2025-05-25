@@ -183,8 +183,8 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-CLIENT_ID = '57a5EHBjxyxNrliDkAZ79Yp0Jm1JhnXHqdnOwhxS'
-CLIENT_SECRET = 'Zb4sdownOVsENJwlJjAoutalA1ldsOZjrANecYrgjkndRpTlfhfjToGrTCnkEXPQFwm7KH0jaNOSFPPMdytq61HlPe5DnTcMf0KqhwCd39eiEEL1stJVrFQ82bPWHhCT'
+CLIENT_ID = 'pfY7lipLT7TilBbCmcSy5cXm7J02NqKe8FKxuwAK'
+CLIENT_SECRET = 'oBNkMm92J3UOaTvuDIh2QH2kJYt6PAL7uxdGD64PMiCpQcWsjVUbHxT5haq5IfN6ex7XwtuVX7B21ggfFqBEaq0NCC39uZMIG7FY8fU3F6D847HFtcGkKmmX1MxvAeRv'
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # bắt buộc

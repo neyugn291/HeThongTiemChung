@@ -386,6 +386,7 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
     def list(self, request):
         schedules = InjectionSchedule.objects.all()
         serializer = self.serializer_class(schedules, many=True)
+
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):

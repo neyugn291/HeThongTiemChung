@@ -104,6 +104,7 @@ class InjectionSchedule(BaseModel):
         return f"{self.vaccine.name} - {self.date}"
 
 
+
 class Appointment(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     schedule = models.ForeignKey(InjectionSchedule, on_delete=models.CASCADE)
