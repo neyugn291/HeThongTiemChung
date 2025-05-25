@@ -63,12 +63,14 @@ class MyUserAdmin(UserAdmin):
     #     ('Thông tin bổ sung', {'fields': ('role', 'avatar')}),
     # )
 
+
 class InjectionScheduleForm(forms.ModelForm):
     description = forms.CharField(widget=CKEditorUploadingWidget())  # Giới thiệu chi tiết lịch tiêm nếu có
 
     class Meta:
         model = InjectionSchedule
         fields = '__all__'
+
 
 class InjectionScheduleAdmin(admin.ModelAdmin):
     # Hiển thị các trường trong list view
@@ -96,24 +98,26 @@ class InjectionScheduleAdmin(admin.ModelAdmin):
         }),
     )
 
+
 class InjectionSiteAdmin(admin.ModelAdmin):
     list_display = ('name', 'address', 'created_at')  # Chỉnh sửa các trường cần hiển thị trong danh sách
     search_fields = ('name', 'address')  # Thêm khả năng tìm kiếm theo tên và địa chỉ
     list_filter = ('created_at',)  # Thêm khả năng lọc theo ngày tạo
     ordering = ('-created_at',)  # Sắp xếp theo ngày tạo, mới nhất lên trên
 
+
 from django.contrib import admin
 from .models import ChatMessage
+
 
 class ChatMessageAdmin(admin.ModelAdmin):
     list_display = ('sender', 'text', 'timestamp')
     search_fields = ('sender', 'text')
 
 
-
 admin_site.register(User, MyUserAdmin)
 
-admin_site.register(InjectionSite,InjectionSiteAdmin)
+admin_site.register(InjectionSite, InjectionSiteAdmin)
 admin_site.register(InjectionSchedule, InjectionScheduleAdmin)
 admin_site.register(VaccinationRecord)
 admin_site.register(Appointment)

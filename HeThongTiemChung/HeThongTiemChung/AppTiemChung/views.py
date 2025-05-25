@@ -1,9 +1,9 @@
-from django.http import HttpResponse
-from django.core.mail import send_mail
-from django.conf import settings
-from rest_framework.viewsets import ModelViewSet
 from datetime import datetime
 
+from django.conf import settings
+from django.core.mail import send_mail
+from django.http import HttpResponse
+from rest_framework.viewsets import ModelViewSet
 
 
 def index(request):
@@ -15,7 +15,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Vaccine, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite, ChatMessage
-from .serializers import AppointmentSerializer, InjectionScheduleSerializer,InjectionSiteSerializer, UserSerializer, ChatMessageSerializer
+from .serializers import AppointmentSerializer, InjectionScheduleSerializer, InjectionSiteSerializer, UserSerializer, \
+    ChatMessageSerializer
 from .permissions import IsAdminUser, IsStaffUser
 
 from AppTiemChung import serializers
@@ -25,8 +26,6 @@ from rest_framework.exceptions import NotAuthenticated
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-
-
 
 
 class VaccineViewSet(viewsets.ModelViewSet):
@@ -94,8 +93,6 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         except Appointment.DoesNotExist:
             raise Http404
 
-
-
     @action(methods=['get'], detail=False)
     def history(self, request):
         appointments = Appointment.objects.all()
@@ -147,19 +144,23 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointment.is_confirmed = confirm_value
         appointment.save()
 
-class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
-        if confirm_value:
-            send_mail(
-                'Appointment Confirmed',
-                f'Your appointment on {appointment.schedule.date} at {appointment.schedule.site.name} has been confirmed.',
-                settings.EMAIL_HOST_USER,
-                [appointment.user.email],
-                fail_silently=False,
-            )
 
-        return Response({'message': f'Appointment confirmation updated to {confirm_value}.'})
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    # if confirm_value:
+    #     send_mail(
+    #         'Appointment Confirmed',
+    #         f'Your appointment on {appointment.schedule.date} at {appointment.schedule.site.name} has been confirmed.',
+    #         settings.EMAIL_HOST_USER,
+    #         [appointment.user.email],
+    #         fail_silently=False,
+    #     )
+    #
+    # return Response({'message': f'Appointment confirmation updated to {confirm_value}.'})
+
 
     @action(detail=True, methods=['patch'], url_path='mark-inoculated')
+
+
     def mark_inoculated(self, request, pk=None):
         appointment = self.get_queryset().filter(pk=pk).first()
         if not appointment:
@@ -174,8 +175,6 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         appointment.save()
         return Response({'message': f'Appointment inoculated status updated to {inoculated_value}.'})
 
-
-class UserViewSet(viewsets.ViewSet):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
@@ -233,7 +232,6 @@ import io
 from django.http import FileResponse
 from reportlab.pdfgen import canvas
 from datetime import datetime
-import datetime
 
 
 class VaccinationRecordViewSet(viewsets.ViewSet):
@@ -266,7 +264,7 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         p.setFont("Helvetica", 12)
         p.drawString(50, 770, f"Name: {request.user.get_full_name()}")
         p.drawString(50, 755, f"Citizen ID: {request.user.citizen_id}")
-        p.drawString(50, 740, f"Issue Date: {datetime.today().strftime('%Y-%m-%d')}")
+        p.drawString(50, 740, f"Issue Date: {datetime.now().strftime('%Y-%m-%d')}")
 
         p.drawString(50, 710, f"Vaccine: {record.vaccine.name}")
         p.drawString(50, 690, f"Dose: {record.dose_number}")
@@ -278,7 +276,6 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         buffer.seek(0)
 
         return FileResponse(buffer, as_attachment=True, filename='vaccination_{pk}_certificate.pdf')
-
 
     @action(detail=False, methods=['get'], url_path='certificate')
     def download_certificate(self, request):
@@ -404,10 +401,9 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
         """
         Lấy tất cả lịch tiêm sắp tới.
         """
-        upcoming_schedules = InjectionSchedule.objects.filter(date__gte=datetime.date.today())
+        upcoming_schedules = InjectionSchedule.objects.filter(date__gte=datetime.now())
         serializer = InjectionScheduleSerializer(upcoming_schedules, many=True)
         return Response(serializer.data)
-
 
 
 class InjectionSiteViewSet(viewsets.ModelViewSet):
@@ -415,21 +411,25 @@ class InjectionSiteViewSet(viewsets.ModelViewSet):
     serializer_class = InjectionSiteSerializer
     permission_classes = [IsAdminUser]
 
+
 def chat_view(request):
     return render(request, 'chat/chat.html', {
         'username': request.user.username
     })
+
+
 import firebase_admin
 from firebase_admin import credentials, db
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-if not firebase_admin._apps:
-    cred = credentials.Certificate('serviceAccountKey.json')  # 🔁 Đổi đường dẫn file JSON
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
-    })
+# if not firebase_admin._apps:
+#     cred = credentials.Certificate('serviceAccountKey.json')  # 🔁 Đổi đường dẫn file JSON
+#     firebase_admin.initialize_app(cred, {
+#         'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
+#     })
+
 
 class ChatMessageViewSet(viewsets.ViewSet):
     queryset = ChatMessage.objects.all().order_by('-timestamp')
@@ -486,6 +486,3 @@ class ChatMessageViewSet(viewsets.ViewSet):
                 'sender': instance.sender.username if instance.sender else 'Unknown',
                 'timestamp': int(instance.timestamp.timestamp() * 1000)  # mili giây
             })
-
-
-

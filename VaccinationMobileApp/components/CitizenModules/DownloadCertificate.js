@@ -14,9 +14,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
 import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import { Searchbar } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
 
-// Hàm chuyển arraybuffer thành base64 mà không dùng Buffer
+// Hàm chuyển arraybuffer thành base64
 const arrayBufferToBase64 = (arrayBuffer) => {
   const bytes = new Uint8Array(arrayBuffer);
   let binary = "";
@@ -33,16 +35,17 @@ const vietnameseMonths = [
 ];
 
 const DownloadCertificate = ({ navigation }) => {
-  const [vaccinationRecords, setVaccinationRecords] = useState([]); // Toàn bộ dữ liệu từ API
-  const [filteredRecords, setFilteredRecords] = useState([]); // Dữ liệu hiển thị (phân trang)
-  const [loading, setLoading] = useState(false); // Trạng thái tải ban đầu
-  const [downloadingId, setDownloadingId] = useState(null); // ID bản ghi đang tải
-  const [filterMonth, setFilterMonth] = useState(""); // Bộ lọc tháng
-  const [filterYear, setFilterYear] = useState(""); // Bộ lọc năm
+  const [vaccinationRecords, setVaccinationRecords] = useState([]);
+  const [filteredRecords, setFilteredRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterYear, setFilterYear] = useState("");
   const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const [page, setPage] = useState(1); // Trang hiện tại
-  const [isLoadingMore, setIsLoadingMore] = useState(false); // Trạng thái tải thêm
-  const itemsPerPage = 4; // Số lượng bản ghi mỗi trang
+  const [page, setPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const itemsPerPage = 4;
+  const [q, setQ] = useState(""); // Thêm state cho từ khóa tìm kiếm
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
   const currentYear = new Date().getFullYear();
@@ -62,7 +65,7 @@ const DownloadCertificate = ({ navigation }) => {
         (a, b) => new Date(b.injection_date) - new Date(a.injection_date)
       );
       setVaccinationRecords(sortedRecords);
-      filterRecords(sortedRecords, filterMonth, filterYear, 1); // Tải trang đầu tiên
+      filterRecords(sortedRecords, q, filterMonth, filterYear, 1); // Thêm q vào filter
     } catch (error) {
       console.error("Error fetching vaccination records:", error);
       Alert.alert("Lỗi", "Không thể tải danh sách tiêm chủng.");
@@ -72,7 +75,7 @@ const DownloadCertificate = ({ navigation }) => {
   };
 
   // Lọc và phân trang dữ liệu
-  const filterRecords = (records, month, year, pageNum) => {
+  const filterRecords = (records, searchQuery, month, year, pageNum) => {
     let filtered = records;
 
     // Lọc theo tháng và năm
@@ -86,6 +89,13 @@ const DownloadCertificate = ({ navigation }) => {
           (!year || recordYear === year)
         );
       });
+    }
+
+    // Tìm kiếm theo vaccine_name
+    if (searchQuery) {
+      filtered = filtered.filter((record) =>
+        record.vaccine_name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
 
     // Phân trang: chỉ lấy dữ liệu từ startIndex đến endIndex
@@ -105,7 +115,7 @@ const DownloadCertificate = ({ navigation }) => {
 
     setIsLoadingMore(true);
     const nextPage = page + 1;
-    filterRecords(vaccinationRecords, filterMonth, filterYear, nextPage);
+    filterRecords(vaccinationRecords, q, filterMonth, filterYear, nextPage); // Thêm q vào filter
     setPage(nextPage);
     setIsLoadingMore(false);
   };
@@ -117,8 +127,8 @@ const DownloadCertificate = ({ navigation }) => {
       Alert.alert("Lỗi", validation.error);
       return;
     }
-    setPage(1); // Reset về trang đầu khi áp dụng bộ lọc
-    filterRecords(vaccinationRecords, filterMonth, filterYear, 1);
+    setPage(1);
+    filterRecords(vaccinationRecords, q, filterMonth, filterYear, 1); // Thêm q vào filter
     setIsFilterVisible(false);
   };
 
@@ -126,8 +136,8 @@ const DownloadCertificate = ({ navigation }) => {
   const clearFilter = () => {
     setFilterMonth("");
     setFilterYear("");
-    setPage(1); // Reset về trang đầu khi xóa bộ lọc
-    filterRecords(vaccinationRecords, "", "", 1);
+    setPage(1);
+    filterRecords(vaccinationRecords, "", "", "", 1); // Thêm q rỗng vào filter
     setIsFilterVisible(false);
   };
 
@@ -150,57 +160,59 @@ const DownloadCertificate = ({ navigation }) => {
     return { isValid: true };
   };
 
-  // Xử lý tải giấy chứng nhận cho từng bản ghi hoặc tất cả
+  // Xử lý tìm kiếm
+  const search = (value) => {
+    setQ(value);
+    filterRecords(vaccinationRecords, value, filterMonth, filterYear, 1); // Thêm q vào filter
+  };
+
+  // Xử lý tải giấy chứng nhận cho từng bản ghi
   const handleDownload = async (recordId) => {
     try {
-      setDownloadingId(recordId); // Đặt trạng thái tải cho bản ghi (hoặc null nếu tải tất cả)
-
-      // Kiểm tra xem file đã tồn tại chưa
-      const fileUri = `${FileSystem.documentDirectory}vaccination_certificate_${
-        recordId || "all"
-      }_${Date.now()}.pdf`;
+      setDownloadingId(recordId);
+      const fileUri = `${FileSystem.documentDirectory}vaccination_certificate_${recordId}_${Date.now()}.pdf`;
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (fileInfo.exists) {
-        Alert.alert(
-          "Thông báo",
-          `File đã tồn tại tại: ${fileUri}\nMở file bằng ứng dụng PDF viewer trên iOS (trong Files > On My iPhone > Expo Go).`
-        );
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/pdf",
+          dialogTitle: "Mở hoặc chia sẻ giấy chứng nhận",
+        });
         setDownloadingId(null);
         return;
       }
 
       const token = await AsyncStorage.getItem("token");
-
-      // Gọi API, thêm tham số record_id nếu có
-      const url = recordId
-        ? `${endpoints["certificate"]}?record_id=${recordId}`
-        : endpoints["certificate"];
+      const url = endpoints["certificate"](recordId);
+      console.log("Generated URL for download:", url);
       const response = await authApis(token).get(url, {
         responseType: "arraybuffer",
       });
 
-      // Chuyển arraybuffer thành base64
       const base64Data = arrayBufferToBase64(response.data);
-
-      // Lưu file
       await FileSystem.writeAsStringAsync(fileUri, base64Data, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Thông báo vị trí file
-      Alert.alert(
-        "Thành công",
-        `Đã tải giấy chứng nhận thành công!\nVị trí: ${fileUri}\nĐể xem file, mở ứng dụng Files trên iOS, vào "On My iPhone" > "Expo Go", tìm file "${fileUri.split('/').pop()}" và mở bằng trình xem PDF.`
-      );
-    } catch (error) {
-      console.error("Error downloading certificate:", error);
-      if (error.response?.status === 404) {
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+      if (isSharingAvailable) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/pdf",
+          dialogTitle: "Mở hoặc chia sẻ giấy chứng nhận",
+        });
+      } else {
         Alert.alert(
-          "Lỗi",
-          recordId
-            ? `Không tìm thấy bản ghi tiêm chủng với ID ${recordId}.`
-            : "Không có lịch sử tiêm chủng để tải."
+          "Thông báo",
+          "Không thể mở file trực tiếp. File đã được lưu tại:\n" +
+          fileUri +
+          "\nBạn có thể thử lưu vào iCloud Drive hoặc mở bằng ứng dụng PDF viewer."
         );
+      }
+    } catch (error) {
+      console.error("Error downloading certificate:", error.response ? error.response.data : error.message);
+      if (error.response?.status === 404) {
+        Alert.alert("Lỗi", `Không tìm thấy bản ghi tiêm chủng với ID ${recordId}.`);
+      } else if (error.response?.status === 500) {
+        Alert.alert("Lỗi", "Lỗi server, vui lòng thử lại sau hoặc liên hệ admin.");
       } else {
         Alert.alert("Lỗi", "Không thể tải giấy chứng nhận.");
       }
@@ -256,6 +268,18 @@ const DownloadCertificate = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* Thêm thanh tìm kiếm */}
+      <View style={styles.searchContainer}>
+        <Searchbar
+          placeholder="Nhập tên vaccine"
+          onChangeText={search}
+          value={q}
+          style={styles.searchbar}
+          inputStyle={styles.searchbarInput}
+          placeholderTextColor="#021b42"
+        />
+      </View>
+
       {loading ? (
         <ActivityIndicator size="large" color="#0c5776" style={styles.loader} />
       ) : (
@@ -266,36 +290,20 @@ const DownloadCertificate = ({ navigation }) => {
             keyExtractor={(item) => item.id.toString()}
             ListEmptyComponent={
               <Text style={styles.emptyText}>
-                {filterMonth || filterYear
+                {q || filterMonth || filterYear
                   ? "Không tìm thấy lịch sử tiêm với bộ lọc này."
                   : "Không có lịch sử tiêm chủng để tải."}
               </Text>
             }
             contentContainerStyle={styles.listContainer}
-            onEndReached={loadMoreRecords} // Gọi hàm loadMoreRecords khi cuộn đến cuối
-            onEndReachedThreshold={0.5} // Kích hoạt khi cuộn đến 50% cuối danh sách
+            onEndReached={loadMoreRecords}
+            onEndReachedThreshold={0.5}
             ListFooterComponent={
               isLoadingMore ? (
                 <ActivityIndicator size="small" color="#0c5776" style={styles.loader} />
               ) : null
             }
           />
-          {filteredRecords.length > 0 && (
-            <TouchableOpacity
-              style={[styles.downloadButton, styles.downloadAllButton]}
-              onPress={() => handleDownload(null)}
-              disabled={downloadingId !== null}
-            >
-              {downloadingId !== null ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <MaterialCommunityIcons name="download" size={16} color="#fff" style={{ marginRight: 5 }} />
-                  <Text style={styles.downloadButtonText}>Tải Tất Cả</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          )}
         </View>
       )}
 
@@ -392,7 +400,21 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+  },
+  searchContainer: {
     marginTop: 20,
+    marginHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#021b42",
+    paddingBottom: 20,
+  },
+  searchbar: {
+    backgroundColor: "#e0f2fe",
+    borderRadius: 8,
+  },
+  searchbarInput: {
+    fontSize: 16,
+    color: "#021b42",
   },
   listContainer: {
     padding: 16,
@@ -429,11 +451,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-  },
-  downloadAllButton: {
-    paddingVertical: 10,
-    marginHorizontal: 16,
-    marginVertical: 20,
   },
   downloadButtonText: {
     color: "#fff",

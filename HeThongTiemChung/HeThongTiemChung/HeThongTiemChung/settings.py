@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,10 +25,8 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-
-ALLOWED_HOSTS = ['192.168.1.69',
-                 '127.0.0.1'] # Runserver IP Lan máy tính + port
-
+ALLOWED_HOSTS = ['192.168.1.20',
+                 '127.0.0.1']  # Runserver IP Lan máy tính + port
 
 # Application definition
 
@@ -121,9 +119,9 @@ DATABASES = {
 }
 
 INTERNAL_IPS = [
-    '192.168.1.69', # Runserver IP Lan máy tính + port
+    '192.168.1.20',  # Runserver IP Lan máy tính + port
     '127.0.0.1'
- ]
+]
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
@@ -182,7 +180,6 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 CLIENT_ID = 'kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup'
 CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK'
 
@@ -203,4 +200,3 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'dhnguyen243@gmail.com'  # Thay bằng email thật
 EMAIL_HOST_PASSWORD = 'iqhm vaao xybp qcjp'  # Dùng app password, KHÔNG dùng password tài khoản
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-

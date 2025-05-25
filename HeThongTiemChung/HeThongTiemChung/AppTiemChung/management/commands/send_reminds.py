@@ -1,9 +1,11 @@
+from datetime import date, timedelta
+
+from AppTiemChung.models import Appointment
+from django.conf import settings
+from django.core.mail import send_mail
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now, timedelta
-from django.core.mail import send_mail
-from django.conf import settings
-from AppTiemChung.models import Appointment
-from datetime import date, timedelta
+
 
 class Command(BaseCommand):
     help = 'Send reminder emails for appointments scheduled for tomorrow'
@@ -27,9 +29,6 @@ class Command(BaseCommand):
             )
             count += 1
 
-
         self.stdout.write(f"Đã gửi nhắc nhở {count} cuộc hẹn.")
         import os
         os.system("pause")
-
-
