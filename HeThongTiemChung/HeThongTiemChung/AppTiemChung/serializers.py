@@ -151,7 +151,6 @@ class InjectionSiteSerializer(serializers.ModelSerializer):
         model = InjectionSite
         fields = ['id', 'name', 'address', 'phone']
 
-
 class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatMessage

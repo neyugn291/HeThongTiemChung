@@ -15,7 +15,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Vaccine, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite, ChatMessage
-from .serializers import AppointmentSerializer, InjectionScheduleSerializer,InjectionSiteSerializer, UserSerializer, ChatMessageSerializer
+from .serializers import AppointmentSerializer, InjectionScheduleSerializer, InjectionSiteSerializer, UserSerializer, \
+    ChatMessageSerializer
 from .permissions import IsAdminUser, IsStaffUser
 
 from AppTiemChung import serializers
@@ -147,16 +148,19 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointment.is_confirmed = confirm_value
         appointment.save()
 
-        if confirm_value:
-            send_mail(
-                'Appointment Confirmed',
-                f'Your appointment on {appointment.schedule.date} at {appointment.schedule.site.name} has been confirmed.',
-                settings.EMAIL_HOST_USER,
-                [appointment.user.email],
-                fail_silently=False,
-            )
 
-        return Response({'message': f'Appointment confirmation updated to {confirm_value}.'})
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    # if confirm_value:
+    #     send_mail(
+    #         'Appointment Confirmed',
+    #         f'Your appointment on {appointment.schedule.date} at {appointment.schedule.site.name} has been confirmed.',
+    #         settings.EMAIL_HOST_USER,
+    #         [appointment.user.email],
+    #         fail_silently=False,
+    #     )
+    #
+    # return Response({'message': f'Appointment confirmation updated to {confirm_value}.'})
+
 
     @action(detail=True, methods=['patch'], url_path='mark-inoculated')
     def mark_inoculated(self, request, pk=None):
@@ -173,8 +177,6 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointment.save()
         return Response({'message': f'Appointment inoculated status updated to {inoculated_value}.'})
 
-
-class UserViewSet(viewsets.ViewSet):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
@@ -196,44 +198,12 @@ class UserViewSet(viewsets.ViewSet):
             return [permissions.IsAdminUser()]  # Chỉ admin mới thao tác với người dùng khác
         return [permissions.AllowAny()]
 
-    def list(self, request):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
-
-    def create(self, request):
-        serializer = UserSerializer(data=request.data)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            user = serializer.save()
+            return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def update(self, request, pk=None):
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = UserSerializer(user, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, pk=None):
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False,
             permission_classes=[permissions.IsAuthenticated])
@@ -246,15 +216,12 @@ class UserViewSet(viewsets.ViewSet):
         if not u.is_authenticated:
             raise NotAuthenticated("Bạn chưa đăng nhập")
         if request.method.__eq__('PATCH'):
-            serializer = serializers.UserSerializer(u, data=request.data, partial=True)
-            if serializer.is_valid():
-                validated_data = serializer.validated_data
             for k, v in request.data.items():
                 if k.__eq__('password'):
                     u.set_password(v)
                 elif k.__eq__('avatar'):
                     if v:
-                        u.avatar = v
+                        u.avatar = v;
                 elif k.__eq__('gender'):
                     u.gender = v
                 elif k.__eq__('birth_date'):
@@ -269,8 +236,7 @@ class UserViewSet(viewsets.ViewSet):
 import io
 from django.http import FileResponse
 from reportlab.pdfgen import canvas
-
-
+from datetime import datetime
 
 
 class VaccinationRecordViewSet(viewsets.ViewSet):
@@ -303,7 +269,7 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         p.setFont("Helvetica", 12)
         p.drawString(50, 770, f"Name: {request.user.get_full_name()}")
         p.drawString(50, 755, f"Citizen ID: {request.user.citizen_id}")
-        p.drawString(50, 740, f"Issue Date: {datetime.today().strftime('%Y-%m-%d')}")
+        p.drawString(50, 740, f"Issue Date: {datetime.now().strftime('%Y-%m-%d')}")
 
         p.drawString(50, 710, f"Vaccine: {record.vaccine.name}")
         p.drawString(50, 690, f"Dose: {record.dose_number}")
@@ -386,7 +352,6 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
     def list(self, request):
         schedules = InjectionSchedule.objects.all()
         serializer = self.serializer_class(schedules, many=True)
-
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
@@ -442,7 +407,7 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
         """
         Lấy tất cả lịch tiêm sắp tới.
         """
-        upcoming_schedules = InjectionSchedule.objects.filter(date__gte=datetime.date.today())
+        upcoming_schedules = InjectionSchedule.objects.filter(date__gte=datetime.now())
         serializer = InjectionScheduleSerializer(upcoming_schedules, many=True)
         return Response(serializer.data)
 

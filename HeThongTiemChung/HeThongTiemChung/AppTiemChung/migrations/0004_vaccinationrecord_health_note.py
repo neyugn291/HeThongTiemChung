@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('AppTiemChung', '0003_alter_vaccinationrecord_unique_together'),
     ]
