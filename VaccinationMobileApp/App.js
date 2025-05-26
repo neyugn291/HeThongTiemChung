@@ -18,6 +18,8 @@ import RecordSearch from "./components/CitizenModules/RecordSearch";
 import Reminders from "./components/CitizenModules/Reminders";
 import VaccineManagement from "./components/AdminModules/VaccineManagement";
 import AccountManagement from "./components/AdminModules/AccountManagement";
+import AddVaccine from "./components/AdminModules/AddVaccine";
+import UpdateVaccine from "./components/AdminModules/UpdateVaccine";
 
 // Reducer để quản lý trạng thái người dùng
 const MyUserReducer = (state, action) => {
@@ -56,6 +58,8 @@ const App = () => {
             <Stack.Screen name="Reminders" component={Reminders} />
             <Stack.Screen name="VaccineManagement" component={VaccineManagement} />
             <Stack.Screen name="AccountManagement" component={AccountManagement} />
+            <Stack.Screen name="AddVaccine" component={AddVaccine} />
+            <Stack.Screen name="UpdateVaccine" component={UpdateVaccine} />
           </Stack.Navigator>
         </NavigationContainer>
       </MyDispatchContext.Provider>

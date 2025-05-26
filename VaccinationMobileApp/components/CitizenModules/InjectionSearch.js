@@ -161,13 +161,13 @@ const InjectionSearch = ({ navigation }) => {
     <View style={styles.scheduleCard}>
       <View style={styles.scheduleInfo}>
         <Text style={styles.scheduleText}>
-          Vaccine: {item.vaccine?.name || "Không xác định"}
+          Vaccine: {item?.vaccine_name || "Không xác định"}
         </Text>
         <Text style={styles.scheduleText}>
           Ngày: {new Date(item.date).toLocaleDateString("vi-VN")}
         </Text>
         <Text style={styles.scheduleText}>
-          Địa điểm: {item.site?.name || "Không xác định"}
+          Địa điểm: {item?.site_name || "Không xác định"}
         </Text>
         <Text style={styles.scheduleText}>Số lượng: {item.slot_count}</Text>
       </View>

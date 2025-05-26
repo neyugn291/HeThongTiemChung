@@ -147,7 +147,6 @@ class InjectionScheduleSerializer(serializers.ModelSerializer):
             'vaccine_name','vaccine_type_name' , 'site_name'
         ]
 
-
     def get_vaccine_name(self, obj):
         return obj.vaccine.name if obj.vaccine else None
 

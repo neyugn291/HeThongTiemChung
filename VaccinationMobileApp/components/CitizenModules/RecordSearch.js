@@ -165,15 +165,16 @@ const RecordSearch = ({ navigation }) => {
 
   const renderVaccinationRecord = ({ item }) => (
     <View style={styles.recordCard}>
-      <Text style={styles.recordText}>
-        Vaccine: {item?.vaccine_name || "Không xác định"}
+      <Text style={[styles.recordText, { fontWeight: "bold" }]}>
+        {item?.vaccine_name || "Không xác định"}
       </Text>
+      <Text style={styles.recordText}>Loại: {item?.vaccine_type_name || "Không xác định"}</Text>
       <Text style={styles.recordText}>Liều số: {item.dose_number}</Text>
       <Text style={styles.recordText}>
         Ngày tiêm: {new Date(item.injection_date).toLocaleDateString("vi-VN")}
       </Text>
       <Text style={styles.recordText}>
-        Địa điểm: {item?.site_name || "Không xác định"}
+        Dặn dò sau tiêm: {item?.health_note || "Không có"}
       </Text>
     </View>
   );
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   picker: {
-    height: 150,
+    height: 250,
     color: "#021b42",
   },
   modalButtons: {
