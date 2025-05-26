@@ -4,6 +4,7 @@ from django.conf import settings
 from rest_framework.viewsets import ModelViewSet
 from datetime import datetime
 
+from chatbot.views import model
 
 
 def index(request):
@@ -15,10 +16,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Vaccine, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite, ChatMessage
-from .serializers import AppointmentSerializer, InjectionScheduleSerializer, InjectionSiteSerializer, UserSerializer, \
-    ChatMessageSerializer
+from .serializers import AppointmentSerializer, InjectionScheduleSerializer,InjectionSiteSerializer, UserSerializer, ChatMessageSerializer
 from .permissions import IsAdminUser, IsStaffUser
 
+from AppTiemChung import models
 from AppTiemChung import serializers
 from rest_framework import permissions
 
@@ -35,6 +36,51 @@ class VaccineViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.VaccineSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+class VaccineTypeViewSet(viewsets.ViewSet):
+    serializer_class = serializers.VaccineTypeSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def list(self, request):
+        queryset = models.VaccineType.objects.all()
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        try:
+            vaccine_type = models.VaccineType.objects.get(pk=pk)
+        except models.VaccineType.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(vaccine_type)
+        return Response(serializer.data)
+
+    def create(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, pk=None):
+        try:
+            vaccine_type = models.VaccineType.objects.get(pk=pk)
+        except models.VaccineType.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(vaccine_type, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, pk=None):
+        try:
+            vaccine_type = models.VaccineType.objects.get(pk=pk)
+        except models.VaccineType.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        vaccine_type.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class AppointmentViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
@@ -43,8 +89,8 @@ class AppointmentViewSet(viewsets.ViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_authenticated:
-            return Appointment.objects.filter(user=user)
-        return Appointment.objects.none()
+            return models.Appointment.objects.filter(user=user)
+        return models.Appointment.objects.none()
 
     def create(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -83,7 +129,7 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
     permission_classes = [IsStaffUser]
 
     def get_queryset(self):
-        return Appointment.objects.all()  # Nhân viên y tế có thể xem tất cả lịch hẹn
+        return models.Appointment.objects.all()  # Nhân viên y tế có thể xem tất cả lịch hẹn
 
     def perform_create(self, serializer):
         # Gán nhân viên y tế khi tạo lịch hẹn
@@ -91,36 +137,17 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
 
     def get_object(self, pk):
         try:
-            return Appointment.objects.get(pk=pk)
-        except Appointment.DoesNotExist:
-            raise Http404
+            return model.Appointment.objects.get(pk=pk)
+        except model.Appointment.DoesNotExist:
+            raise status.HTTP_400_BAD_REQUEST
 
 
 
     @action(methods=['get'], detail=False)
     def history(self, request):
-        appointments = Appointment.objects.all()
+        appointments = model.Appointment.objects.all()
         serializer = serializers.AppointmentSerializer(appointments, many=True)
         return Response(serializer.data)
-
-    # @action(detail=True, methods=['get'])
-    # def send_confirmation(self, request, pk=None):
-    #     # GET /appointments/{id}/reminders/
-    #     appointment = Appointment.objects.get(pk=pk, user=request.user)
-    #
-    #     # Kiểm tra nếu cuộc hẹn đã được xác nhận
-    #     if appointment.is_confirmed:
-    #         # Gửi email xác nhận
-    #         send_mail(
-    #             'Appointment Confirmed',
-    #             f'Your appointment on {appointment.schedule.date} at {appointment.schedule.site.name} has been confirmed.',
-    #             settings.EMAIL_HOST_USER,
-    #             [appointment.user.email],
-    #             fail_silently=False,
-    #         )
-    #         return Response({"message": "Reminder email sent!"})
-    #     else:
-    #         return Response({"message": "Appointment is not confirmed yet."}, status=400)
 
     @action(detail=True, methods=['patch'], url_path='toggle-reminder')
     def toggle_reminder(self, request, pk=None):
@@ -177,7 +204,8 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         appointment.save()
         return Response({'message': f'Appointment inoculated status updated to {inoculated_value}.'})
 
-    queryset = User.objects.filter(is_active=True)
+class UserViewSet(viewsets.ViewSet):
+    queryset = models.User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
 
@@ -187,8 +215,8 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         Lấy lịch sử cuộc hẹn của người dùng hiện tại
         """
         user = request.user
-        user_appointments = Appointment.objects.filter(user=user)
-        serialized = AppointmentSerializer(user_appointments, many=True)
+        user_appointments = model.Appointment.objects.filter(user=user)
+        serialized = serializers.AppointmentSerializer(user_appointments, many=True)
         return Response(serialized.data)
 
     def get_permissions(self):
@@ -198,12 +226,44 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             return [permissions.IsAdminUser()]  # Chỉ admin mới thao tác với người dùng khác
         return [permissions.AllowAny()]
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+    def list(self, request):
+        users = model.User.objects.all()
+        serializer = serializers.UserSerializer(users, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        try:
+            user = model.User.objects.get(pk=pk)
+        except model.User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = serializers.UserSerializer(user)
+        return Response(serializer.data)
+
+    def create(self, request):
+        serializer = serializers.UserSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, pk=None):
+        try:
+            user = model.User.objects.get(pk=pk)
+        except model.User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = serializers.UserSerializer(user, data=request.data)
         if serializer.is_valid():
             user = serializer.save()
             return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, pk=None):
+        try:
+            user = model.User.objects.get(pk=pk)
+        except model.User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False,
             permission_classes=[permissions.IsAuthenticated])
@@ -216,6 +276,9 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         if not u.is_authenticated:
             raise NotAuthenticated("Bạn chưa đăng nhập")
         if request.method.__eq__('PATCH'):
+            serializer = serializers.UserSerializer(u, data=request.data, partial=True)
+            if serializer.is_valid():
+                validated_data = serializer.validated_data
             for k, v in request.data.items():
                 if k.__eq__('password'):
                     u.set_password(v)
@@ -236,23 +299,25 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 import io
 from django.http import FileResponse
 from reportlab.pdfgen import canvas
-from datetime import datetime
+
+
 
 
 class VaccinationRecordViewSet(viewsets.ViewSet):
+    serializer_class = serializers.VaccinationRecordSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     @action(detail=False, methods=['get'], url_path='history')
     def vaccination_history(self, request):
-        records = VaccinationRecord.objects.filter(user=request.user).select_related('vaccine', 'site')
+        records = models.VaccinationRecord.objects.filter(user=request.user).select_related('vaccine', 'site')
         data = serializers.VaccinationRecordSerializer(records, many=True).data
         return Response(data)
 
     @action(detail=True, methods=['get'], url_path='certificate')
     def download_single_certificate(self, request, pk=None):
         try:
-            record = VaccinationRecord.objects.select_related('vaccine', 'site').get(pk=pk)
-        except VaccinationRecord.DoesNotExist:
+            record = models.VaccinationRecord.objects.select_related('vaccine', 'site').get(pk=pk)
+        except models.VaccinationRecord.DoesNotExist:
             return Response({'message': 'Vaccination record not found'}, status=404)
 
         # ✅ Kiểm tra người dùng có phải chủ sở hữu bản ghi không
@@ -269,7 +334,7 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         p.setFont("Helvetica", 12)
         p.drawString(50, 770, f"Name: {request.user.get_full_name()}")
         p.drawString(50, 755, f"Citizen ID: {request.user.citizen_id}")
-        p.drawString(50, 740, f"Issue Date: {datetime.now().strftime('%Y-%m-%d')}")
+        p.drawString(50, 740, f"Issue Date: {datetime.today().strftime('%Y-%m-%d')}")
 
         p.drawString(50, 710, f"Vaccine: {record.vaccine.name}")
         p.drawString(50, 690, f"Dose: {record.dose_number}")
@@ -285,7 +350,7 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'], url_path='certificate')
     def download_certificate(self, request):
-        records = VaccinationRecord.objects.filter(user=request.user)
+        records = models.VaccinationRecord.objects.filter(user=request.user)
         if not records.exists():
             return Response({'message': 'No vaccination records found'}, status=404)
 
@@ -302,7 +367,12 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
 
         y = 710
         for record in records:
-            p.drawString(50, y, f"- {record.vaccine.name}, Dose {record.dose_number}, Date: {record.injection_date}")
+            vaccine_name = record.vaccine.name
+            vaccine_type = record.vaccine.vaccine_type.name if record.vaccine.vaccine_type else "Không xác định"
+            dose_number = record.dose_number
+            injection_date = record.injection_date.strftime('%Y-%m-%d')
+
+            p.drawString(50, y, f"- {vaccine_name} ({vaccine_type}), Mũi {dose_number}, Ngày: {injection_date}")
             y -= 20
 
         p.showPage()
@@ -317,8 +387,8 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         API để thêm hoặc cập nhật health note vào VaccinationRecord.
         """
         try:
-            record = VaccinationRecord.objects.get(pk=pk, user=request.user)
-        except VaccinationRecord.DoesNotExist:
+            record = models.VaccinationRecord.objects.get(pk=pk, user=request.user)
+        except models.VaccinationRecord.DoesNotExist:
             return Response({'message': 'Vaccination record not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # Kiểm tra xem người dùng có quyền truy cập bản ghi này không
@@ -337,10 +407,9 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
 
         return Response({'message': 'Health note updated successfully', 'health_note': record.health_note})
 
-
 class InjectionScheduleViewSet(viewsets.ViewSet):
-    queryset = InjectionSchedule.objects.all()
-    serializer_class = InjectionScheduleSerializer
+    queryset = models.InjectionSchedule.objects.all()
+    serializer_class = serializers.InjectionScheduleSerializer
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'destroy']:
@@ -350,14 +419,15 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
         return [permission() for permission in permission_classes]
 
     def list(self, request):
-        schedules = InjectionSchedule.objects.all()
+        schedules = models.InjectionSchedule.objects.all()
         serializer = self.serializer_class(schedules, many=True)
+
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         try:
-            schedule = InjectionSchedule.objects.get(pk=pk)
-        except InjectionSchedule.DoesNotExist:
+            schedule = models.InjectionSchedule.objects.get(pk=pk)
+        except models.InjectionSchedule.DoesNotExist:
             return Response({'message': 'Schedule not found'}, status=404)
         serializer = self.serializer_class(schedule)
         return Response(serializer.data)
@@ -371,8 +441,8 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
 
     def update(self, request, pk=None):
         try:
-            schedule = InjectionSchedule.objects.get(pk=pk)
-        except InjectionSchedule.DoesNotExist:
+            schedule = models.InjectionSchedule.objects.get(pk=pk)
+        except models.InjectionSchedule.DoesNotExist:
             return Response({'message': 'Schedule not found'}, status=404)
 
         serializer = self.serializer_class(schedule, data=request.data, partial=True)
@@ -383,8 +453,8 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
 
     def destroy(self, request, pk=None):
         try:
-            schedule = InjectionSchedule.objects.get(pk=pk)
-        except InjectionSchedule.DoesNotExist:
+            schedule = models.InjectionSchedule.objects.get(pk=pk)
+        except models.InjectionSchedule.DoesNotExist:
             return Response({'message': 'Schedule not found'}, status=404)
 
         schedule.delete()
@@ -395,7 +465,7 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
         """
         Kiểm tra xem lịch tiêm tại một địa điểm có còn chỗ trống hay không.
         """
-        schedule = self.get_object()  # Lấy đối tượng InjectionSchedule theo pk
+        schedule = self.get_object()
         available_slots = schedule.slot_count  # Lấy số lượng slot còn lại
         if available_slots > 0:
             return Response({"message": "Chỗ trống còn lại: {}".format(available_slots)})
@@ -407,15 +477,13 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
         """
         Lấy tất cả lịch tiêm sắp tới.
         """
-        upcoming_schedules = InjectionSchedule.objects.filter(date__gte=datetime.now())
-        serializer = InjectionScheduleSerializer(upcoming_schedules, many=True)
+        upcoming_schedules = models.InjectionSchedule.objects.filter(date__gte=datetime.date.today())
+        serializer = serializers.InjectionScheduleSerializer(upcoming_schedules, many=True)
         return Response(serializer.data)
 
-
-
 class InjectionSiteViewSet(viewsets.ModelViewSet):
-    queryset = InjectionSite.objects.all()
-    serializer_class = InjectionSiteSerializer
+    queryset = models.InjectionSite.objects.all()
+    serializer_class = serializers.InjectionSiteSerializer
     permission_classes = [IsAdminUser]
 
 def chat_view(request):
@@ -439,25 +507,25 @@ if not firebase_admin._apps:
     })
 
 class ChatMessageViewSet(viewsets.ViewSet):
-    queryset = ChatMessage.objects.all().order_by('-timestamp')
-    serializer_class = ChatMessageSerializer
+    queryset = models.ChatMessage.objects.all().order_by('-timestamp')
+    serializer_class = serializers.ChatMessageSerializer
 
     def list(self, request):
-        queryset = ChatMessage.objects.all().order_by('-timestamp')
-        serializer = ChatMessageSerializer(queryset, many=True)
+        queryset = models.ChatMessage.objects.all().order_by('-timestamp')
+        serializer = serializers.ChatMessageSerializer(queryset, many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         try:
-            chat_message = ChatMessage.objects.get(pk=pk)
-        except ChatMessage.DoesNotExist:
+            chat_message = models.ChatMessage.objects.get(pk=pk)
+        except models.ChatMessage.DoesNotExist:
             return Response({'detail': 'Không tìm thấy tin nhắn'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ChatMessageSerializer(chat_message)
+        serializer = serializers.ChatMessageSerializer(chat_message)
         return Response(serializer.data)
 
     def create(self, request):
-        serializer = ChatMessageSerializer(data=request.data)
+        serializer = serializers.ChatMessageSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -465,11 +533,11 @@ class ChatMessageViewSet(viewsets.ViewSet):
 
     def update(self, request, pk=None):
         try:
-            chat_message = ChatMessage.objects.get(pk=pk)
-        except ChatMessage.DoesNotExist:
+            chat_message = models.ChatMessage.objects.get(pk=pk)
+        except models.ChatMessage.DoesNotExist:
             return Response({'detail': 'Không tìm thấy tin nhắn'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ChatMessageSerializer(chat_message, data=request.data)
+        serializer = serializers.ChatMessageSerializer(chat_message, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -477,14 +545,14 @@ class ChatMessageViewSet(viewsets.ViewSet):
 
     def destroy(self, request, pk=None):
         try:
-            chat_message = ChatMessage.objects.get(pk=pk)
-        except ChatMessage.DoesNotExist:
+            chat_message = models.ChatMessage.objects.get(pk=pk)
+        except models.ChatMessage.DoesNotExist:
             return Response({'detail': 'Không tìm thấy tin nhắn'}, status=status.HTTP_404_NOT_FOUND)
 
         chat_message.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @receiver(post_save, sender=ChatMessage)
+    @receiver(post_save, sender=models.ChatMessage)
     def sync_chatmessage_to_firebase(sender, instance, created, **kwargs):
         if created:
             ref = db.reference('messages')
