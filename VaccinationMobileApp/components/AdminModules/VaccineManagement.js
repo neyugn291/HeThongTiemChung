@@ -16,36 +16,44 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
 import { Picker } from "@react-native-picker/picker";
 
-const VaccineManagement = ({ navigation }) => {
+const VaccineManagement = ({ navigation, route }) => {
   const [vaccines, setVaccines] = useState([]);
   const [filteredVaccines, setFilteredVaccines] = useState([]);
-  const [displayedVaccines, setDisplayedVaccines] = useState([]); // Danh sách hiển thị
+  const [displayedVaccines, setDisplayedVaccines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("");
   const [isFilterVisible, setIsFilterVisible] = useState(false);
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [newVaccineName, setNewVaccineName] = useState("");
-  const [newVaccineType, setNewVaccineType] = useState("");
-  const [editingVaccine, setEditingVaccine] = useState(null);
-  const [page, setPage] = useState(1); // Trang hiện tại
-  const [isLoadingMore, setIsLoadingMore] = useState(false); // Trạng thái tải thêm
-  const itemsPerPage = 10; // Số bản ghi mỗi trang
+  const [page, setPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const itemsPerPage = 10;
 
-  const vaccineTypes = ["Ngừa bệnh", "Tăng cường"]; // Giả lập danh sách loại vaccine
+  // Lấy danh sách loại vaccine từ dữ liệu
+  const vaccineTypes = Array.from(
+    new Set(vaccines.map((v) => v.vaccine_type_name).filter(Boolean))
+  );
 
   useEffect(() => {
-    fetchVaccines();
-  }, []);
+    // Kiểm tra updatedVaccines từ route.params
+    if (route.params?.updatedVaccines) {
+      const sortedVaccines = route.params.updatedVaccines.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+      setVaccines(sortedVaccines);
+      filterVaccines(sortedVaccines, searchQuery, filterType, 1);
+    } else {
+      fetchVaccines();
+    }
+  }, [route.params?.updatedVaccines]);
 
-  // Lấy danh sách vaccine
   const fetchVaccines = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).get(endpoints["vaccines"]);
-      const sortedVaccines = response.data.sort((a, b) => a.name.localeCompare(b.name));
+      const response = await authApis(token).get(endpoints["vaccines"]());
+      const sortedVaccines = response.data.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
       setVaccines(sortedVaccines);
       filterVaccines(sortedVaccines, searchQuery, filterType, 1);
     } catch (error) {
@@ -56,7 +64,6 @@ const VaccineManagement = ({ navigation }) => {
     }
   };
 
-  // Lọc vaccine theo tên và loại với lazy loading
   const filterVaccines = (vaccines, query, type, pageNum) => {
     let filtered = vaccines;
 
@@ -67,7 +74,9 @@ const VaccineManagement = ({ navigation }) => {
     }
 
     if (type) {
-      filtered = filtered.filter((vaccine) => vaccine.type === type);
+      filtered = filtered.filter(
+        (vaccine) => vaccine.vaccine_type_name === type
+      );
     }
 
     setFilteredVaccines(filtered);
@@ -81,9 +90,9 @@ const VaccineManagement = ({ navigation }) => {
     );
   };
 
-  // Tải thêm khi cuộn đến cuối
   const loadMoreVaccines = () => {
-    if (isLoadingMore || displayedVaccines.length >= filteredVaccines.length) return;
+    if (isLoadingMore || displayedVaccines.length >= filteredVaccines.length)
+      return;
 
     setIsLoadingMore(true);
     const nextPage = page + 1;
@@ -92,21 +101,18 @@ const VaccineManagement = ({ navigation }) => {
     setIsLoadingMore(false);
   };
 
-  // Tìm kiếm vaccine
   const handleSearch = (query) => {
     setSearchQuery(query);
     setPage(1);
     filterVaccines(vaccines, query, filterType, 1);
   };
 
-  // Áp dụng bộ lọc
   const applyFilter = () => {
     setPage(1);
     filterVaccines(vaccines, searchQuery, filterType, 1);
     setIsFilterVisible(false);
   };
 
-  // Xóa bộ lọc
   const clearFilter = () => {
     setFilterType("");
     setPage(1);
@@ -114,120 +120,44 @@ const VaccineManagement = ({ navigation }) => {
     setIsFilterVisible(false);
   };
 
-  // Thêm vaccine mới
-  const addVaccine = async () => {
-    if (!newVaccineName || !newVaccineType) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin vaccine.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).post(endpoints["vaccines"], {
-        name: newVaccineName,
-        type: newVaccineType,
-      });
-      const updatedVaccines = [...vaccines, response.data].sort((a, b) => a.name.localeCompare(b.name));
-      setVaccines(updatedVaccines);
-      filterVaccines(updatedVaccines, searchQuery, filterType, 1);
-      setNewVaccineName("");
-      setNewVaccineType("");
-      setIsAddModalVisible(false);
-      Alert.alert("Thành công", "Thêm vaccine thành công!");
-    } catch (error) {
-      console.error("Error adding vaccine:", error);
-      Alert.alert("Lỗi", "Không thể thêm vaccine.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Sửa vaccine
-  const editVaccine = async () => {
-    if (!newVaccineName || !newVaccineType) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin vaccine.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).patch(
-        `${endpoints["vaccines"]}${editingVaccine.id}/`,
-        {
-          name: newVaccineName,
-          type: newVaccineType,
-        }
-      );
-      const updatedVaccines = vaccines.map((vaccine) =>
-        vaccine.id === editingVaccine.id ? response.data : vaccine
-      ).sort((a, b) => a.name.localeCompare(b.name));
-      setVaccines(updatedVaccines);
-      filterVaccines(updatedVaccines, searchQuery, filterType, 1);
-      setNewVaccineName("");
-      setNewVaccineType("");
-      setIsEditModalVisible(false);
-      Alert.alert("Thành công", "Cập nhật vaccine thành công!");
-    } catch (error) {
-      console.error("Error updating vaccine:", error);
-      Alert.alert("Lỗi", "Không thể cập nhật vaccine.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Xóa vaccine
-  const deleteVaccine = async (vaccineId) => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem("token");
-      await authApis(token).delete(`${endpoints["vaccines"]}${vaccineId}/`);
-      const updatedVaccines = vaccines.filter((vaccine) => vaccine.id !== vaccineId).sort((a, b) => a.name.localeCompare(b.name));
-      setVaccines(updatedVaccines);
-      filterVaccines(updatedVaccines, searchQuery, filterType, 1);
-      Alert.alert("Thành công", "Xóa vaccine thành công!");
-    } catch (error) {
-      console.error("Error deleting vaccine:", error);
-      Alert.alert("Lỗi", "Không thể xóa vaccine.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const renderVaccine = ({ item }) => (
-    <View style={styles.vaccineCard}>
+    <TouchableOpacity
+      style={styles.vaccineCard}
+      onPress={() =>
+        navigation.navigate("UpdateVaccine", {
+          vaccineId: item.id, // Không truyền refresh
+        })
+      }
+    >
       <View style={styles.vaccineInfo}>
-        <Text style={styles.vaccineText}>Tên: {item.name}</Text>
-        <Text style={styles.vaccineText}>Loại: {item.type || "Không xác định"}</Text>
+        <Text style={[styles.vaccineText, { fontWeight: "bold" }]}>
+          {item.name}
+        </Text>
+        <Text style={styles.vaccineText}>
+          Loại vaccine: {item?.vaccine_type_name || "Không xác định"}
+        </Text>
+        <Text style={styles.vaccineText}>
+          Nhà sản xuất: {item?.manufacturer || "Không xác định"}
+        </Text>
+        <Text style={styles.vaccineText}>
+          Số lượng liều: {item?.dose_count || "Không xác định"}
+        </Text>
       </View>
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            setEditingVaccine(item);
-            setNewVaccineName(item.name);
-            setNewVaccineType(item.type);
-            setIsEditModalVisible(true);
-          }}
-        >
-          <MaterialCommunityIcons name="pencil" size={20} color="#0c5776" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => deleteVaccine(item.id)}
-        >
-          <MaterialCommunityIcons name="delete" size={20} color="#ff0000" />
-        </TouchableOpacity>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="dark-content"
+      />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quản Lý Vaccine</Text>
@@ -245,13 +175,13 @@ const VaccineManagement = ({ navigation }) => {
         <View style={styles.contentContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Nhập tên vaccine cần tìm..."
+            placeholder="Nhập tên vaccine"
             value={searchQuery}
             onChangeText={handleSearch}
           />
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => setIsAddModalVisible(true)}
+            onPress={() => navigation.navigate("AddVaccine")} // Không truyền refresh
           >
             <Text style={styles.addButtonText}>Thêm Vaccine</Text>
           </TouchableOpacity>
@@ -267,100 +197,16 @@ const VaccineManagement = ({ navigation }) => {
             onEndReachedThreshold={0.5}
             ListFooterComponent={
               isLoadingMore ? (
-                <ActivityIndicator size="small" color="#0c5776" style={styles.loader} />
+                <ActivityIndicator
+                  size="small"
+                  color="#0c5776"
+                  style={styles.loader}
+                />
               ) : null
             }
           />
         </View>
       )}
-
-      {/* Modal thêm vaccine */}
-      <Modal
-        transparent={true}
-        visible={isAddModalVisible}
-        animationType="slide"
-        onRequestClose={() => setIsAddModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.fixedTitle}>Thêm Vaccine</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Tên vaccine"
-              value={newVaccineName}
-              onChangeText={setNewVaccineName}
-            />
-            <Picker
-              selectedValue={newVaccineType}
-              style={styles.picker}
-              onValueChange={(itemValue) => setNewVaccineType(itemValue)}
-            >
-              <Picker.Item label="Chọn loại vaccine" value="" />
-              {vaccineTypes.map((type) => (
-                <Picker.Item key={type} label={type} value={type} />
-              ))}
-            </Picker>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setIsAddModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.doneButton]}
-                onPress={addVaccine}
-              >
-                <Text style={styles.modalButtonText}>Thêm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal sửa vaccine */}
-      <Modal
-        transparent={true}
-        visible={isEditModalVisible}
-        animationType="slide"
-        onRequestClose={() => setIsEditModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.fixedTitle}>Sửa Vaccine</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Tên vaccine"
-              value={newVaccineName}
-              onChangeText={setNewVaccineName}
-            />
-            <Picker
-              selectedValue={newVaccineType}
-              style={styles.picker}
-              onValueChange={(itemValue) => setNewVaccineType(itemValue)}
-            >
-              <Picker.Item label="Chọn loại vaccine" value="" />
-              {vaccineTypes.map((type) => (
-                <Picker.Item key={type} label={type} value={type} />
-              ))}
-            </Picker>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setIsEditModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.doneButton]}
-                onPress={editVaccine}
-              >
-                <Text style={styles.modalButtonText}>Cập nhật</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Modal bộ lọc loại vaccine */}
       <Modal
@@ -464,13 +310,6 @@ const styles = StyleSheet.create({
     color: "#021b42",
     marginBottom: 5,
   },
-  actionButtons: {
-    flexDirection: "row",
-  },
-  actionButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
   searchInput: {
     backgroundColor: "#fff",
     padding: 10,
@@ -484,7 +323,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginHorizontal: 16,
     marginBottom: 10,
-    borderRadius: 8,
+    borderRadius: 5,
     alignItems: "center",
   },
   addButtonText: {
@@ -494,7 +333,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#021b42",
+    color: "#616161",
     textAlign: "center",
     marginTop: 20,
   },
@@ -516,14 +355,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     paddingBottom: 10,
-  },
-  input: {
-    backgroundColor: "#fff",
-    padding: 10,
-    marginHorizontal: 30,
-    marginBottom: 10,
-    borderRadius: 8,
-    fontSize: 16,
   },
   picker: {
     height: 150,

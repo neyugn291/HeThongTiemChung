@@ -12,7 +12,7 @@ export const endpoints = {
   allSchedules: "schedules/all_schedules/",
   upcomingSchedules: "schedules/upcoming_schedules/",
   appointments: "appointments/",
-  vaccines: "vaccines/",
+  vaccines: (id) => (id ? `vaccines/${id}/` : "vaccines/"),
 };
 
 export const authApis = (token) => {
