@@ -45,6 +45,11 @@ class AppointmentViewSet(viewsets.ViewSet):
             return Appointment.objects.filter(user=user)
         return Appointment.objects.none()
 
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
+
     def create(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
@@ -101,25 +106,6 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointments = Appointment.objects.all()
         serializer = serializers.AppointmentSerializer(appointments, many=True)
         return Response(serializer.data)
-
-    # @action(detail=True, methods=['get'])
-    # def send_confirmation(self, request, pk=None):
-    #     # GET /appointments/{id}/reminders/
-    #     appointment = Appointment.objects.get(pk=pk, user=request.user)
-    #
-    #     # Kiểm tra nếu cuộc hẹn đã được xác nhận
-    #     if appointment.is_confirmed:
-    #         # Gửi email xác nhận
-    #         send_mail(
-    #             'Appointment Confirmed',
-    #             f'Your appointment on {appointment.schedule.date} at {appointment.schedule.site.name} has been confirmed.',
-    #             settings.EMAIL_HOST_USER,
-    #             [appointment.user.email],
-    #             fail_silently=False,
-    #         )
-    #         return Response({"message": "Reminder email sent!"})
-    #     else:
-    #         return Response({"message": "Appointment is not confirmed yet."}, status=400)
 
     @action(detail=True, methods=['patch'], url_path='toggle-reminder')
     def toggle_reminder(self, request, pk=None):
@@ -463,7 +449,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate('serviceAccountKey.json')  # 🔁 Đổi đường dẫn file JSON
+    cred = credentials.Certificate('secure_keys/serviceAccountKey.json')  # 🔁 Đổi đường dẫn file JSON
     firebase_admin.initialize_app(cred, {
         'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
     })
