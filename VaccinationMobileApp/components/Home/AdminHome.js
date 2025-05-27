@@ -41,9 +41,9 @@ const AdminHome = ({ navigation, route }) => {
   }, []);
 
   const featureList = [
-    { icon: "account-group", label: "Quản lý tài khoản", screen: "ManageAccounts" },
+    { icon: "account-group", label: "Quản lý tài khoản", screen: "AccountManagement" },
     { icon: "calendar-range-outline", label: "Quản lý các đợt tiêm chủng", screen: "ManageVaccinationSchedules" },
-    { icon: "hospital-box-outline", label: "Quản lý thông tin vaccine", screen: "ManageVaccines" },
+    { icon: "hospital-box-outline", label: "Quản lý thông tin vaccine", screen: "VaccineManagement" },
   ];
 
   const navItems = [

@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('AppTiemChung', '0002_appointment_is_inoculated_injectionsite_created_at_and_more'),
     ]

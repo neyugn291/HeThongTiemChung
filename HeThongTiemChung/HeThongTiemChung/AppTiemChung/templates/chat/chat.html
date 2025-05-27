@@ -1,93 +1,98 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Firebase Chat</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+    <title>Firebase Chat</title>
+    <script type="module">
+        import {initializeApp} from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+        import {
+            getDatabase,
+            onChildAdded,
+            push,
+            ref
+        } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBS41ALRvHi7Fm_fLvfgKL11T738unCNe0",
-      authDomain: "vaccinationapp-cb597.firebaseapp.com",
-      databaseURL: "https://vaccinationapp-cb597-default-rtdb.firebaseio.com",
-      projectId: "vaccinationapp-cb597",
-      storageBucket: "vaccinationapp-cb597.appspot.com",
-      messagingSenderId: "115864967085",
-      appId: "1:115864967085:web:c028c3aad6a39879b0b324",
-      measurementId: "G-7ZH6LEY5RL"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const messagesRef = ref(db, 'messages');
-
-    document.addEventListener("DOMContentLoaded", function () {
-      const form = document.getElementById("chat-form");
-      const input = document.getElementById("chat-input");
-      const messages = document.getElementById("messages");
-
-      const username = "{{ request.user.username }}";
-      const token = "{{ token }}";  // nếu bạn dùng JWT hoặc Token Authentication
-
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (input.value.trim() === "") return;
-
-        await push(messagesRef, {
-          text: input.value,
-          sender: "{{ username }}",
-          timestamp: Date.now()
-        });
-
-        // ✅ Bot phản hồi đơn giản:
-        await push(messagesRef, {
-          text: "Cảm ơn bạn đã nhắn tin. Chúng tôi sẽ phản hồi sớm!",
-          sender: "Bot",
-          timestamp: Date.now()
-        });
-
-        const messageData = {
-          text: input.value,
-          sender: "{{ username }}",
-          timestamp: new Date().toISOString()
+        const firebaseConfig = {
+            apiKey: "AIzaSyBS41ALRvHi7Fm_fLvfgKL11T738unCNe0",
+            authDomain: "vaccinationapp-cb597.firebaseapp.com",
+            databaseURL: "https://vaccinationapp-cb597-default-rtdb.firebaseio.com",
+            projectId: "vaccinationapp-cb597",
+            storageBucket: "vaccinationapp-cb597.appspot.com",
+            messagingSenderId: "115864967085",
+            appId: "1:115864967085:web:c028c3aad6a39879b0b324",
+            measurementId: "G-7ZH6LEY5RL"
         };
 
-        const response = await fetch('/chatmessages/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(messageData)
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const messagesRef = ref(db, 'messages');
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("chat-form");
+            const input = document.getElementById("chat-input");
+            const messages = document.getElementById("messages");
+
+            const username = "{{ request.user.username }}";
+            const token = "{{ token }}";  // nếu bạn dùng JWT hoặc Token Authentication
+
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                if (input.value.trim() === "") return;
+
+                await push(messagesRef, {
+                    text: input.value,
+                    sender: "{{ username }}",
+                    timestamp: Date.now()
+                });
+
+                // ✅ Bot phản hồi đơn giản:
+                await push(messagesRef, {
+                    text: "Cảm ơn bạn đã nhắn tin. Chúng tôi sẽ phản hồi sớm!",
+                    sender: "Bot",
+                    timestamp: Date.now()
+                });
+
+                const messageData = {
+                    text: input.value,
+                    sender: "{{ username }}",
+                    timestamp: new Date().toISOString()
+                };
+
+                const response = await fetch('/chatmessages/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(messageData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Lỗi khi tạo tin nhắn');
+                }
+
+                const data = await response.json();
+                console.log('Tạo message thành công:', data);
+
+                input.value = "";
+            });
+
+            onChildAdded(messagesRef, (data) => {
+                const msg = data.val();
+                const div = document.createElement("div");
+                div.textContent = `${msg.sender}: ${msg.text}`;
+                messages.appendChild(div);
+                messages.scrollTop = messages.scrollHeight; // Tự cuộn xuống cuối
+            });
         });
-
-        if (!response.ok) {
-          throw new Error('Lỗi khi tạo tin nhắn');
-        }
-
-        const data = await response.json();
-        console.log('Tạo message thành công:', data);
-
-        input.value = "";
-      });
-
-      onChildAdded(messagesRef, (data) => {
-        const msg = data.val();
-        const div = document.createElement("div");
-        div.textContent = `${msg.sender}: ${msg.text}`;
-        messages.appendChild(div);
-        messages.scrollTop = messages.scrollHeight; // Tự cuộn xuống cuối
-      });
-    });
-  </script>
+    </script>
 
 </head>
 <body>
-  <h2>Chat Firebase</h2>
-  <div id="messages" style="height: 300px; overflow-y: auto; border: 1px solid #ccc;"></div>
-  <form id="chat-form">
-    <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." />
+<h2>Chat Firebase</h2>
+<div id="messages" style="height: 300px; overflow-y: auto; border: 1px solid #ccc;"></div>
+<form id="chat-form">
+    <input type="text" id="chat-input" placeholder="Nhập tin nhắn..."/>
     <button type="submit">Gửi</button>
-  </form>
+</form>
 </body>
 </html>

@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('AppTiemChung', '0001_initial'),
     ]
@@ -29,7 +28,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='gender',
-            field=models.CharField(blank=True, choices=[('M', 'Nam'), ('F', 'Nữ'), ('O', 'Khác')], max_length=1, null=True),
+            field=models.CharField(blank=True, choices=[('M', 'Nam'), ('F', 'Nữ'), ('O', 'Khác')], max_length=1,
+                                   null=True),
         ),
         migrations.AlterField(
             model_name='injectionsite',
