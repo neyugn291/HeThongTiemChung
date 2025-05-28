@@ -9,10 +9,11 @@ export const endpoints = {
   recordSearch: "records/history/",
   certificate: (recordId) => `/records/${recordId}/certificate/`, // Endpoint động  
   injectionSites: "sites/",
-  allSchedules: "schedules/all_schedules/",
+  allSchedules: "schedules/",
   upcomingSchedules: "schedules/upcoming_schedules/",
   appointments: "appointments/",
   vaccines: (id) => (id ? `vaccines/${id}/` : "vaccines/"),
+  vaccineTypes: (id) => (id ? `vaccine-types/${id}/` : "vaccine-types/"),
 };
 
 export const authApis = (token) => {

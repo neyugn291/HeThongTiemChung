@@ -29,7 +29,7 @@ const RecordSearch = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
-  const [q, setQ] = useState(""); // Từ khóa tìm kiếm theo vaccine_name
+  const [q, setQ] = useState(""); // Từ khóa tìm kiếm
   const [filterMonth, setFilterMonth] = useState(""); // Bộ lọc tháng
   const [filterYear, setFilterYear] = useState(""); // Bộ lọc năm
   const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -63,7 +63,7 @@ const RecordSearch = ({ navigation }) => {
     }
   };
 
-  // Xử lý tìm kiếm và lọc theo vaccine_name, tháng, năm (phía client)
+  // Xử lý tìm kiếm và lọc theo vaccine_name hoặc vaccine_type_name, tháng, năm
   const filterRecords = (records, searchQuery, month, year) => {
     let filtered = records;
 
@@ -80,10 +80,11 @@ const RecordSearch = ({ navigation }) => {
       });
     }
 
-    // Tìm kiếm theo vaccine_name
+    // Tìm kiếm theo vaccine_name hoặc vaccine_type_name
     if (searchQuery) {
       filtered = filtered.filter((record) =>
-        record.vaccine_name.toLowerCase().includes(searchQuery.toLowerCase())
+        record.vaccine_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (record.vaccine_type_name && record.vaccine_type_name.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -197,7 +198,7 @@ const RecordSearch = ({ navigation }) => {
 
       <View style={styles.searchContainer}>
         <Searchbar
-          placeholder="Nhập tên vaccine"
+          placeholder="Nhập tên hoặc loại vaccine"
           onChangeText={search}
           value={q}
           style={styles.searchbar}

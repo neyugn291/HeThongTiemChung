@@ -8,98 +8,111 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Switch,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
 
 const BookingAppointment = ({ navigation }) => {
-  const [schedules, setSchedules] = useState([]);
-  const [filteredSchedules, setFilteredSchedules] = useState([]); // Danh sách hiển thị
+  const [appointments, setAppointments] = useState([]);
+  const [filteredAppointments, setFilteredAppointments] = useState([]); // Danh sách hiển thị
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1); // Trang hiện tại
   const [isLoadingMore, setIsLoadingMore] = useState(false); // Trạng thái tải thêm
+  const [showPastAppointments, setShowPastAppointments] = useState(false); // Toggle lịch cũ
   const itemsPerPage = 10; // Số bản ghi mỗi trang
 
   useEffect(() => {
-    fetchUpcomingSchedules();
-  }, []);
+    fetchUserAppointments();
+  }, [showPastAppointments]);
 
-  // Lấy danh sách lịch tiêm sắp tới
-  const fetchUpcomingSchedules = async () => {
+  // Lấy danh sách lịch hẹn của người dùng
+  const fetchUserAppointments = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).get(endpoints["upcomingSchedules"]);
-      setSchedules(response.data);
-      filterSchedules(response.data, 1); // Tải trang 1
+      const response = await authApis(token).get(endpoints["appointments"]);
+      console.log("Appointments API response:", response.data); // Debug
+      const sortedAppointments = response.data.sort(
+        (a, b) => new Date(b.schedule.date) - new Date(a.schedule.date)
+      );
+      setAppointments(sortedAppointments);
+      filterAppointments(sortedAppointments, 1);
     } catch (error) {
-      console.error("Error fetching upcoming schedules:", error);
-      Alert.alert("Lỗi", "Không thể tải danh sách lịch tiêm.");
+      console.error("Error fetching user appointments:", error);
+      Alert.alert("Lỗi", "Không thể tải danh sách lịch hẹn.");
+      setAppointments([]);
+      setFilteredAppointments([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Phân trang dữ liệu
-  const filterSchedules = (data, pageNum) => {
+  // Lọc và phân trang dữ liệu
+  const filterAppointments = (data, pageNum) => {
+    let filtered = data;
+
+    // Lọc lịch hẹn đã qua
+    if (!showPastAppointments) {
+      filtered = filtered.filter(
+        (appointment) => new Date(appointment.schedule.date) >= new Date()
+      );
+    }
+
+    // Phân trang
     const startIndex = (pageNum - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const paginatedSchedules = data.slice(startIndex, endIndex);
+    const paginatedAppointments = filtered.slice(startIndex, endIndex);
 
-    setFilteredSchedules((prev) =>
-      pageNum === 1 ? paginatedSchedules : [...prev, ...paginatedSchedules]
+    setFilteredAppointments((prev) =>
+      pageNum === 1 ? paginatedAppointments : [...prev, ...paginatedAppointments]
     );
   };
 
   // Tải thêm khi cuộn đến cuối
-  const loadMoreSchedules = () => {
-    if (isLoadingMore || filteredSchedules.length >= schedules.length) return;
+  const loadMoreAppointments = () => {
+    if (isLoadingMore || filteredAppointments.length >= appointments.length) return;
 
     setIsLoadingMore(true);
     const nextPage = page + 1;
-    filterSchedules(schedules, nextPage);
+    filterAppointments(appointments, nextPage);
     setPage(nextPage);
     setIsLoadingMore(false);
   };
 
-  // Đặt lịch hẹn
-  const bookAppointment = async (scheduleId) => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).post(endpoints["appointments"], {
-        schedule: scheduleId,
-      });
-      Alert.alert("Thành công", "Đặt lịch hẹn thành công!");
-      navigation.goBack();
-    } catch (error) {
-      console.error("Error booking appointment:", error);
-      Alert.alert("Lỗi", "Không thể đặt lịch hẹn.");
-    } finally {
-      setLoading(false);
-    }
+  // Toggle hiển thị lịch hẹn đã qua
+  const togglePastAppointments = () => {
+    setShowPastAppointments((prev) => !prev);
+    setPage(1);
+    setFilteredAppointments([]);
   };
 
-  const renderSchedule = ({ item }) => (
-    <View style={styles.scheduleCard}>
-      <View style={styles.scheduleInfo}>
-        <Text style={styles.scheduleText}>
-          Vaccine: {item.vaccine_name || "Không xác định"}
+  // Điều hướng đến màn hình đặt lịch tiêm
+  const navigateToBooking = () => {
+    navigation.navigate("InjectionSearch"); // Màn hình đặt lịch
+  };
+
+  // Hiển thị mỗi lịch hẹn
+  const renderAppointment = ({ item }) => (
+    <View style={styles.appointmentCard}>
+      <View style={styles.appointmentInfo}>
+        <Text style={styles.appointmentText}>
+          Vaccine: {item.schedule.vaccine_name || "Không xác định"}
         </Text>
-        <Text style={styles.scheduleText}>Ngày: {new Date(item.date).toLocaleDateString("vi-VN")}</Text>
-        <Text style={styles.scheduleText}>Địa điểm: {item.site_name || "Không xác định"}</Text>
-        <Text style={styles.scheduleText}>Số lượng: {item.slot_count}</Text>
+        <Text style={styles.appointmentText}>
+          Loại: {item.schedule.vaccine_type_name || "Không xác định"}
+        </Text>
+        <Text style={styles.appointmentText}>
+          Ngày: {new Date(item.schedule.date).toLocaleDateString("vi-VN")}
+        </Text>
+        <Text style={styles.appointmentText}>
+          Địa điểm: {item.schedule.site_name || "Không xác định"}
+        </Text>
+        <Text style={styles.appointmentText}>
+          Trạng thái: {item.status === "confirmed" ? "Đã xác nhận" : item.status === "cancelled" ? "Đã hủy" : "Đang chờ"}
+        </Text>
       </View>
-      <TouchableOpacity
-        style={styles.bookButton}
-        onPress={() => bookAppointment(item.id)}
-        disabled={item.slot_count === 0 || loading}
-      >
-        <Text style={styles.bookButtonText}>
-          {item.slot_count === 0 ? "Hết chỗ" : "Đặt Lịch"}
-        </Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -110,8 +123,21 @@ const BookingAppointment = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Đặt Lịch Tiêm</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.headerTitle}>Lịch Hẹn Của Tôi</Text>
+        <TouchableOpacity style={styles.bookButton} onPress={navigateToBooking}>
+          <MaterialCommunityIcons name="calendar-plus" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Nút bật/tắt lịch hẹn cũ */}
+      <View style={styles.toggleContainer}>
+        <Text style={styles.toggleText}>Hiển thị lịch hẹn đã qua</Text>
+        <Switch
+          value={showPastAppointments}
+          onValueChange={togglePastAppointments}
+          trackColor={{ false: "#767577", true: "#0c5776" }}
+          thumbColor={showPastAppointments ? "#f8dad0" : "#f4f3f4"}
+        />
       </View>
 
       {loading ? (
@@ -119,14 +145,18 @@ const BookingAppointment = ({ navigation }) => {
       ) : (
         <View style={styles.contentContainer}>
           <FlatList
-            data={filteredSchedules}
-            renderItem={renderSchedule}
+            data={filteredAppointments}
+            renderItem={renderAppointment}
             keyExtractor={(item) => item.id.toString()}
             ListEmptyComponent={
-              <Text style={styles.emptyText}>Không có lịch tiêm sắp tới.</Text>
+              <Text style={styles.emptyText}>
+                {showPastAppointments
+                  ? "Không có lịch hẹn nào."
+                  : "Không có lịch hẹn sắp tới."}
+              </Text>
             }
             contentContainerStyle={styles.listContainer}
-            onEndReached={loadMoreSchedules}
+            onEndReached={loadMoreAppointments}
             onEndReachedThreshold={0.5}
             ListFooterComponent={
               isLoadingMore ? (
@@ -169,21 +199,30 @@ const styles = StyleSheet.create({
     marginTop: 30,
     marginLeft: 5,
   },
-  placeholder: {
-    width: 44, // Giữ chỗ để cân đối header
+  bookButton: {
+    padding: 10,
+    marginTop: 30,
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  toggleText: {
+    fontSize: 16,
+    color: "#021b42",
   },
   contentContainer: {
     flex: 1,
-    marginTop: 20,
+    marginTop: 10,
   },
   listContainer: {
     padding: 16,
     paddingBottom: 20,
   },
-  scheduleCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  appointmentCard: {
     backgroundColor: "#f8dad0",
     borderRadius: 8,
     padding: 16,
@@ -192,26 +231,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
   },
-  scheduleInfo: {
+  appointmentInfo: {
     flex: 1,
   },
-  scheduleText: {
+  appointmentText: {
     fontSize: 16,
     color: "#021b42",
     marginBottom: 5,
-  },
-  bookButton: {
-    backgroundColor: "#0c5776",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bookButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
   },
   emptyText: {
     fontSize: 16,

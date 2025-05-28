@@ -482,7 +482,7 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
         """
         Lấy tất cả lịch tiêm sắp tới.
         """
-        upcoming_schedules = models.InjectionSchedule.objects.filter(date__gte=datetime.date.today())
+        upcoming_schedules = models.InjectionSchedule.objects.filter(date__gte=datetime.now())
         serializer = serializers.InjectionScheduleSerializer(upcoming_schedules, many=True)
         return Response(serializer.data)
 
