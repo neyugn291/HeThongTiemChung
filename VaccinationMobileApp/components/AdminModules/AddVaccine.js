@@ -34,7 +34,7 @@ const vietnameseMonths = [
 const AddVaccine = ({ navigation }) => {
   const [formData, setFormData] = useState({
     name: "",
-    vaccine_type: "",
+    vaccine_type: "", // Lưu ID của vaccine type
     manufacturer: "",
     dose_count: "",
     dose_interval: "",
@@ -43,7 +43,7 @@ const AddVaccine = ({ navigation }) => {
     approved_date: "",
     status: "Active",
   });
-  const [vaccineTypes, setVaccineTypes] = useState([]);
+  const [vaccineTypes, setVaccineTypes] = useState([]); // [{ id, name }, ...]
   const [loading, setLoading] = useState(false);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [isVaccineTypePickerVisible, setVaccineTypePickerVisible] = useState(false);
@@ -62,22 +62,46 @@ const AddVaccine = ({ navigation }) => {
     (currentYear - i).toString()
   );
 
+  // Định nghĩa displayDate
+  const displayDate =
+    selectedDay && selectedMonth && selectedYear
+      ? `${selectedDay} - ${vietnameseMonths[parseInt(selectedMonth) - 1]} - ${selectedYear}`
+      : "--/--/----";
+
   useEffect(() => {
     const fetchVaccineTypes = async () => {
       try {
+        setLoading(true);
         const token = await AsyncStorage.getItem("token");
-        const response = await authApis(token).get(endpoints["vaccines"]());
-        const types = Array.from(
-          new Set(response.data.map((v) => v.vaccine_type_name).filter(Boolean))
-        );
-        setVaccineTypes(types);
+        console.log("Token:", token ? "Valid" : "Missing"); // Debug
+        console.log("Fetching vaccine types from:", endpoints.vaccineTypes()); // Debug
+        const response = await authApis(token).get(endpoints.vaccineTypes());
+        console.log("VaccineTypes API response:", JSON.stringify(response.data, null, 2)); // Debug
+        const data = response.data.results || response.data; // Xử lý phân trang
+        if (Array.isArray(data)) {
+          setVaccineTypes(data);
+        } else {
+          console.warn("Unexpected response format:", response.data);
+          setVaccineTypes([]);
+          Alert.alert("Cảnh báo", "Dữ liệu loại vaccine không đúng định dạng.");
+        }
       } catch (error) {
-        console.error("Error fetching vaccine types:", error);
-        Alert.alert("Lỗi", "Không thể tải danh sách loại vaccine.");
+        console.error("Error fetching vaccine types:", {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+        Alert.alert("Lỗi", "Không thể tải danh sách loại vaccine. Vui lòng kiểm tra kết nối hoặc đăng nhập lại.");
+      } finally {
+        setLoading(false);
       }
     };
     fetchVaccineTypes();
   }, []);
+
+  useEffect(() => {
+    console.log("Current vaccineTypes state:", JSON.stringify(vaccineTypes, null, 2)); // Debug
+  }, [vaccineTypes]);
 
   const handleDayMonthYearChange = () => {
     if (selectedDay && selectedMonth && selectedYear) {
@@ -141,41 +165,43 @@ const AddVaccine = ({ navigation }) => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      await authApis(token).post(endpoints["vaccines"](), {
+      console.log("Posting vaccine to:", endpoints.vaccines()); // Debug
+      const payload = {
         ...formData,
+        vaccine_type: parseInt(formData.vaccine_type), // Đảm bảo là số
         dose_count: formData.dose_count ? parseInt(formData.dose_count) : null,
-        dose_interval: formData.dose_interval
-          ? parseInt(formData.dose_interval)
-          : null,
-        active: formData.status === "Active", // Sử dụng active: true/false
-      });
+        dose_interval: formData.dose_interval ? parseInt(formData.dose_interval) : null,
+        active: formData.status === "Active",
+      };
+      console.log("Payload:", JSON.stringify(payload, null, 2)); // Debug
+      await authApis(token).post(endpoints.vaccines(), payload);
 
-      // Lấy danh sách vaccine mới
-      const updatedVaccinesResponse = await authApis(token).get(
-        endpoints["vaccines"]()
-      );
+      const updatedVaccinesResponse = await authApis(token).get(endpoints.vaccines());
       const updatedVaccines = updatedVaccinesResponse.data;
 
       Alert.alert("Thành công", "Thêm vaccine thành công!", [
         {
           text: "OK",
           onPress: () => {
-            navigation.navigate("VaccineManagement", { updatedVaccines }); // Truyền danh sách mới
+            navigation.navigate("VaccineManagement", { updatedVaccines });
           },
         },
       ]);
     } catch (error) {
-      console.error("Error adding vaccine:", error);
-      Alert.alert("Lỗi", "Không thể thêm vaccine.");
+      console.error("Error adding vaccine:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      Alert.alert("Lỗi", "Không thể thêm vaccine. Vui lòng kiểm tra dữ liệu hoặc kết nối.");
     } finally {
       setLoading(false);
     }
   };
 
-  const displayDate =
-    selectedDay && selectedMonth && selectedYear
-      ? `${selectedDay} - ${vietnameseMonths[parseInt(selectedMonth) - 1]} - ${selectedYear}`
-      : "--/--/----";
+  const selectedVaccineTypeName =
+    vaccineTypes.find((type) => type.id === parseInt(formData.vaccine_type))?.name ||
+    "Chọn loại vaccine";
 
   return (
     <View style={styles.container}>
@@ -206,12 +232,13 @@ const AddVaccine = ({ navigation }) => {
           <Text style={styles.label}>Loại vaccine</Text>
           <TouchableOpacity
             style={styles.dateInput}
-            onPress={() => setVaccineTypePickerVisible(true)}
+            onPress={() => {
+              console.log("Opening vaccine type picker. vaccineTypes:", JSON.stringify(vaccineTypes, null, 2)); // Debug
+              setVaccineTypePickerVisible(true);
+            }}
             activeOpacity={0.7}
           >
-            <Text style={styles.dateText}>
-              {formData.vaccine_type || "Chọn loại vaccine"}
-            </Text>
+            <Text style={styles.dateText}>{selectedVaccineTypeName}</Text>
             {formData.vaccine_type && (
               <TouchableOpacity
                 style={styles.clearButton}
@@ -308,7 +335,7 @@ const AddVaccine = ({ navigation }) => {
                 })
               }
               trackColor={{ false: "#767577", true: "#0c5776" }}
-              thumbColor={formData.status === "Active" ? "#f4f3f4" : "#f4f3f4"}
+              thumbColor={formData.status === "Active" ? "#f4f3f4" : ""}
             />
           </View>
 
@@ -318,13 +345,13 @@ const AddVaccine = ({ navigation }) => {
             disabled={loading}
           >
             <Text style={styles.submitButtonText}>
-              {loading ? "Đang xử lý..." : "Thêm vaccine"}
+              {loading ? "Đang xử lý..." : "Thêm"}
             </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Modal cho Picker Ngày-Tháng-Năm */}
+      {/* Modal cho Picker Ngày */}
       <Modal
         transparent={true}
         visible={isDatePickerVisible}
@@ -334,11 +361,11 @@ const AddVaccine = ({ navigation }) => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.fixedTitleContainer}>
-              <Text style={[styles.fixedTitle, { width: 70 }]}>Ngày</Text>
-              <Text style={[styles.fixedTitle, { width: 160 }]}>Tháng</Text>
-              <Text style={[styles.fixedTitle, { width: 100 }]}>Năm</Text>
+              <Text style={[styles.modalTitle, { width: 70 }]}>Ngày</Text>
+              <Text style={[styles.modalTitle, { width: 160 }]}>Tháng</Text>
+              <Text style={[styles.modalTitle, { width: 100 }]}>Năm</Text>
             </View>
-            <View style={styles.pickerContainer}>
+            <View style={styles.pickerContainerView}>
               <Picker
                 selectedValue={selectedDay}
                 style={[styles.picker, { width: 100 }]}
@@ -404,20 +431,32 @@ const AddVaccine = ({ navigation }) => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.fixedTitle}>Loại Vaccine</Text>
-            <View style={styles.pickerContainer}>
+            <Text style={styles.modalTitle}>Loại Vaccine</Text>
+            <View style={styles.pickerContainerView}>
               <Picker
                 selectedValue={formData.vaccine_type}
-                style={styles.picker}
+                style={[styles.picker, { width: '100%' }]}
                 onValueChange={(itemValue) => {
+                  console.log("Selected vaccine type ID:", itemValue); // Debug
                   setFormData({ ...formData, vaccine_type: itemValue });
                   setVaccineTypePickerVisible(false);
                 }}
               >
                 <Picker.Item label="Chọn loại vaccine" value="" />
-                {vaccineTypes.map((type) => (
-                  <Picker.Item key={type} label={type} value={type} />
-                ))}
+                {vaccineTypes.length > 0 ? (
+                  vaccineTypes.map((type) => {
+                    console.log("Rendering vaccine type:", type.name, type.id); // Debug
+                    return (
+                      <Picker.Item
+                        key={type.id.toString()}
+                        label={type.name}
+                        value={type.id.toString()}
+                      />
+                    );
+                  })
+                ) : (
+                  <Picker.Item label="Không có loại vaccine" value="" />
+                )}
               </Picker>
             </View>
             <View style={styles.modalButtons}>
@@ -447,10 +486,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#6a97a4",
   },
   header: {
-    height: 120,
+    height: 100,
     backgroundColor: "#0c5776",
     justifyContent: "flex-start",
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
     alignItems: "center",
     flexDirection: "row",
     zIndex: 1,
@@ -468,7 +507,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginTop: 30,
-    marginLeft: 5,
+    marginLeft: 10,
   },
   section: {
     padding: 16,
@@ -484,7 +523,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#f9ccbd",
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
     fontSize: 16,
     marginBottom: 16,
     color: "#021b42",
@@ -494,7 +533,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#f9ccbd",
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
     marginBottom: 16,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -513,23 +552,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  pickerContainer: {
-    backgroundColor: "#0c5776",
+  pickerContainerView: {
+    backgroundColor: "#fff",
     borderRadius: 8,
     marginBottom: 16,
     padding: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
   },
   picker: {
-    height: 250,
+    height: 200,
     color: "#021b42",
+    width: '100%',
   },
   submitButton: {
-    marginTop: 10,
+    marginTop: 16,
     backgroundColor: "#0c5776",
-    padding: 16,
-    borderRadius: 12,
+    padding: 12,
+    borderRadius: 8,
     alignItems: "center",
   },
   submitButtonText: {
@@ -544,31 +582,34 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#0c5776",
-    paddingVertical: 20,
+    paddingVertical: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   fixedTitleContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 30,
-    paddingBottom: 20,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f9ccbd",
   },
-  fixedTitle: {
-    fontSize: 16,
+  modalTitle: {
+    fontSize: 18,
     color: "#fff",
     fontWeight: "bold",
     textAlign: "center",
+    marginBottom: 12,
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 20,
     paddingHorizontal: 30,
+    marginTop: 12,
   },
   modalButton: {
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
     flex: 1,
     alignItems: "center",
   },
@@ -582,6 +623,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: "#021b42",
     fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -34,7 +33,6 @@ const VaccineManagement = ({ navigation, route }) => {
   );
 
   useEffect(() => {
-    // Kiểm tra updatedVaccines từ route.params
     if (route.params?.updatedVaccines) {
       const sortedVaccines = route.params.updatedVaccines.sort((a, b) =>
         a.name.localeCompare(b.name)
@@ -125,7 +123,7 @@ const VaccineManagement = ({ navigation, route }) => {
       style={styles.vaccineCard}
       onPress={() =>
         navigation.navigate("UpdateVaccine", {
-          vaccineId: item.id, // Không truyền refresh
+          vaccineId: item.id,
         })
       }
     >
@@ -181,9 +179,15 @@ const VaccineManagement = ({ navigation, route }) => {
           />
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => navigation.navigate("AddVaccine")} // Không truyền refresh
+            onPress={() => navigation.navigate("AddVaccine")}
           >
             <Text style={styles.addButtonText}>Thêm Vaccine</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.typeButton}
+            onPress={() => navigation.navigate("TypeManagement")}
+          >
+            <Text style={styles.typeButtonText}>Chỉnh sửa loại vaccine</Text>
           </TouchableOpacity>
           <FlatList
             data={displayedVaccines}
@@ -314,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 10,
     marginHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: 15,
     borderRadius: 8,
     fontSize: 16,
   },
@@ -327,6 +331,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  typeButton: {
+    backgroundColor: "#0c5776",
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  typeButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
@@ -357,7 +374,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   picker: {
-    height: 150,
+    height: 250,
     color: "#021b42",
     marginHorizontal: 30,
   },

@@ -45,7 +45,7 @@ const DownloadCertificate = ({ navigation }) => {
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const itemsPerPage = 4;
-  const [q, setQ] = useState(""); // Thêm state cho từ khóa tìm kiếm
+  const [q, setQ] = useState(""); // Từ khóa tìm kiếm
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
   const currentYear = new Date().getFullYear();
@@ -65,7 +65,7 @@ const DownloadCertificate = ({ navigation }) => {
         (a, b) => new Date(b.injection_date) - new Date(a.injection_date)
       );
       setVaccinationRecords(sortedRecords);
-      filterRecords(sortedRecords, q, filterMonth, filterYear, 1); // Thêm q vào filter
+      filterRecords(sortedRecords, q, filterMonth, filterYear, 1);
     } catch (error) {
       console.error("Error fetching vaccination records:", error);
       Alert.alert("Lỗi", "Không thể tải danh sách tiêm chủng.");
@@ -91,10 +91,11 @@ const DownloadCertificate = ({ navigation }) => {
       });
     }
 
-    // Tìm kiếm theo vaccine_name
+    // Tìm kiếm theo vaccine_name hoặc vaccine_type_name
     if (searchQuery) {
       filtered = filtered.filter((record) =>
-        record.vaccine_name.toLowerCase().includes(searchQuery.toLowerCase())
+        record.vaccine_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (record.vaccine_type_name && record.vaccine_type_name.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -115,7 +116,7 @@ const DownloadCertificate = ({ navigation }) => {
 
     setIsLoadingMore(true);
     const nextPage = page + 1;
-    filterRecords(vaccinationRecords, q, filterMonth, filterYear, nextPage); // Thêm q vào filter
+    filterRecords(vaccinationRecords, q, filterMonth, filterYear, nextPage);
     setPage(nextPage);
     setIsLoadingMore(false);
   };
@@ -128,7 +129,7 @@ const DownloadCertificate = ({ navigation }) => {
       return;
     }
     setPage(1);
-    filterRecords(vaccinationRecords, q, filterMonth, filterYear, 1); // Thêm q vào filter
+    filterRecords(vaccinationRecords, q, filterMonth, filterYear, 1);
     setIsFilterVisible(false);
   };
 
@@ -136,8 +137,9 @@ const DownloadCertificate = ({ navigation }) => {
   const clearFilter = () => {
     setFilterMonth("");
     setFilterYear("");
+    setQ(""); // Xóa từ khóa tìm kiếm khi xóa bộ lọc
     setPage(1);
-    filterRecords(vaccinationRecords, "", "", "", 1); // Thêm q rỗng vào filter
+    filterRecords(vaccinationRecords, "", "", "", 1);
     setIsFilterVisible(false);
   };
 
@@ -163,7 +165,8 @@ const DownloadCertificate = ({ navigation }) => {
   // Xử lý tìm kiếm
   const search = (value) => {
     setQ(value);
-    filterRecords(vaccinationRecords, value, filterMonth, filterYear, 1); // Thêm q vào filter
+    setPage(1); // Reset trang về 1 khi tìm kiếm
+    filterRecords(vaccinationRecords, value, filterMonth, filterYear, 1);
   };
 
   // Xử lý tải giấy chứng nhận cho từng bản ghi
@@ -269,10 +272,10 @@ const DownloadCertificate = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Thêm thanh tìm kiếm */}
+      {/* Thanh tìm kiếm */}
       <View style={styles.searchContainer}>
         <Searchbar
-          placeholder="Nhập tên vaccine"
+          placeholder="Nhập tên hoặc loại vaccine"
           onChangeText={search}
           value={q}
           style={styles.searchbar}

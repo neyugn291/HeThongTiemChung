@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Switch,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,78 +17,84 @@ import { authApis, endpoints } from "../../configs/Apis";
 import { Searchbar } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
 
-// Danh sách tháng bằng tiếng Việt
-const vietnameseMonths = [
-  "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
-  "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
-];
-
 const InjectionSearch = ({ navigation }) => {
   const [schedules, setSchedules] = useState([]);
   const [filteredSchedules, setFilteredSchedules] = useState([]);
+  const [sites, setSites] = useState([]); // Danh sách địa điểm từ site_name
   const [loading, setLoading] = useState(false);
-  const [filterMonth, setFilterMonth] = useState("");
-  const [filterYear, setFilterYear] = useState("");
+  const [filterSite, setFilterSite] = useState(""); // Bộ lọc địa điểm
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [q, setQ] = useState(""); // State cho từ khóa tìm kiếm
-  const itemsPerPage = 10;
-
-  const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 2020 + 6 }, (_, i) => (currentYear + i - 5).toString());
+  const [q, setQ] = useState(""); // Từ khóa tìm kiếm
+  const [showPastSchedules, setShowPastSchedules] = useState(false); // Mặc định không hiển thị lịch cũ
+  const itemsPerPage = 20;
 
   useEffect(() => {
     fetchSchedules();
-  }, []);
+  }, [showPastSchedules]);
 
-  // Lấy danh sách lịch tiêm sắp tới
+  // Lấy danh sách lịch tiêm và trích xuất địa điểm
   const fetchSchedules = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).get(endpoints["upcomingSchedules"]);
+      const endpoint = showPastSchedules
+        ? endpoints["allSchedules"] // Giả định endpoint lấy tất cả lịch
+        : endpoints["upcomingSchedules"];
+      const response = await authApis(token).get(endpoint);
+      console.log("Schedules API response:", endpoint, response.data); // Debug
       const sortedSchedules = response.data.sort(
         (a, b) => new Date(a.date) - new Date(b.date)
       );
-      setSchedules(sortedSchedules);
-      filterSchedules(sortedSchedules, q, filterMonth, filterYear, 1);
+      // Fallback client-side lọc nếu không có allSchedules
+      const filteredData = showPastSchedules
+        ? sortedSchedules
+        : sortedSchedules.filter((schedule) => new Date(schedule.date) >= new Date());
+
+      const uniqueSites = [
+        ...new Set(
+          sortedSchedules
+            .filter((schedule) => schedule.site_name)
+            .map((schedule) => schedule.site_name)
+        ),
+      ].map((name, index) => ({ id: index + 1, name }));
+      console.log("Unique sites:", uniqueSites);
+
+      setSites(uniqueSites);
+      setSchedules(filteredData);
+      filterSchedules(filteredData, q, filterSite, 1);
     } catch (error) {
       console.error("Lỗi khi tải lịch tiêm:", error);
       Alert.alert("Lỗi", "Không thể tải danh sách lịch tiêm.");
       setSchedules([]);
       setFilteredSchedules([]);
+      setSites([]); // Reset sites nếu lỗi
     } finally {
       setLoading(false);
     }
   };
 
   // Lọc và phân trang dữ liệu
-  const filterSchedules = (data, searchQuery, month, year, pageNum) => {
+  const filterSchedules = (data, searchQuery, site, pageNum) => {
     let filtered = data;
 
-    // Lọc theo tháng và năm
-    if (month || year) {
-      filtered = filtered.filter((schedule) => {
-        const scheduleDate = new Date(schedule.date);
-        const scheduleMonth = (scheduleDate.getMonth() + 1).toString().padStart(2, "0");
-        const scheduleYear = scheduleDate.getFullYear().toString();
-        return (
-          (!month || scheduleMonth === month) &&
-          (!year || scheduleYear === year)
-        );
-      });
+    // Lọc theo địa điểm
+    if (site) {
+      filtered = filtered.filter((schedule) => schedule.site_name === site);
     }
 
-    // Tìm kiếm theo tên vaccine
+    // Tìm kiếm theo vaccine_name hoặc vaccine_type_name
     if (searchQuery) {
       filtered = filtered.filter((schedule) =>
-        schedule.vaccine.name.toLowerCase().includes(searchQuery.toLowerCase())
+        (schedule.vaccine_name &&
+          schedule.vaccine_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (schedule.vaccine_type_name &&
+          schedule.vaccine_type_name.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
-    // Phân trang: chỉ lấy dữ liệu từ startIndex đến endIndex
+    // Phân trang
     const startIndex = (pageNum - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedSchedules = filtered.slice(startIndex, endIndex);
@@ -98,13 +105,13 @@ const InjectionSearch = ({ navigation }) => {
     );
   };
 
-  // Tải thêm lịch khi cuộn đến cuối danh sách
-  const loadMoreSchedules = () => {
+  // Tải thêm lịch
+  const loadMore = () => {
     if (isLoadingMore || filteredSchedules.length >= schedules.length) return;
 
     setIsLoadingMore(true);
     const nextPage = page + 1;
-    filterSchedules(schedules, q, filterMonth, filterYear, nextPage);
+    filterSchedules(schedules, q, filterSite, nextPage);
     setPage(nextPage);
     setIsLoadingMore(false);
   };
@@ -113,55 +120,41 @@ const InjectionSearch = ({ navigation }) => {
   const search = (value) => {
     setQ(value);
     setPage(1);
-    filterSchedules(schedules, value, filterMonth, filterYear, 1);
+    filterSchedules(schedules, value, filterSite, 1);
   };
 
   // Áp dụng bộ lọc
   const applyFilter = () => {
-    const validation = validateDate(filterMonth, filterYear);
-    if (!validation.isValid) {
-      Alert.alert("Lỗi", validation.error);
-      return;
-    }
     setPage(1);
-    filterSchedules(schedules, q, filterMonth, filterYear, 1);
+    filterSchedules(schedules, q, filterSite, 1);
     setIsFilterVisible(false);
   };
 
   // Xóa bộ lọc
   const clearFilter = () => {
-    setFilterMonth("");
-    setFilterYear("");
+    setFilterSite("");
+    setQ("");
     setPage(1);
-    filterSchedules(schedules, q, "", "", 1);
+    filterSchedules(schedules, "", "", 1);
     setIsFilterVisible(false);
   };
 
-  // Kiểm tra tính hợp lệ của tháng và năm
-  const validateDate = (month, year) => {
-    const monthNum = parseInt(month, 10);
-    const yearNum = parseInt(year, 10);
-
-    if (!month && !year) {
-      return { isValid: true };
-    }
-
-    if (month && (isNaN(monthNum) || monthNum < 1 || monthNum > 12)) {
-      return { isValid: false, error: "Tháng phải nằm trong khoảng từ 1 đến 12." };
-    }
-    if (year && (isNaN(yearNum) || yearNum < 2020 || yearNum > currentYear + 5)) {
-      return { isValid: false, error: `Năm phải nằm trong khoảng từ 2020 đến ${currentYear + 5}.` };
-    }
-
-    return { isValid: true };
+  // Bật/tắt hiển thị lịch cũ
+  const togglePastSchedules = () => {
+    setShowPastSchedules((prev) => !prev);
+    setPage(1);
+    setFilteredSchedules([]);
   };
 
   // Hiển thị mỗi lịch tiêm
   const renderSchedule = ({ item }) => (
     <View style={styles.scheduleCard}>
       <View style={styles.scheduleInfo}>
+        <Text style={[styles.scheduleText, { fontWeight: "bold" }]}>
+          {item?.vaccine_name || "Không xác định"}
+        </Text>
         <Text style={styles.scheduleText}>
-          Vaccine: {item?.vaccine_name || "Không xác định"}
+          Loại: {item?.vaccine_type_name || "Không xác định"}
         </Text>
         <Text style={styles.scheduleText}>
           Ngày: {new Date(item.date).toLocaleDateString("vi-VN")}
@@ -181,7 +174,7 @@ const InjectionSearch = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tra Cứu Lịch Tiêm Sắp Tới</Text>
+        <Text style={styles.headerTitle}>Tra Cứu Lịch Tiêm</Text>
         <TouchableOpacity
           style={styles.filterButton}
           onPress={() => setIsFilterVisible(true)}
@@ -193,12 +186,23 @@ const InjectionSearch = ({ navigation }) => {
       {/* Thanh tìm kiếm */}
       <View style={styles.searchContainer}>
         <Searchbar
-          placeholder="Tìm kiếm theo tên vaccine"
+          placeholder="Tìm kiếm theo tên hoặc loại vaccine"
           onChangeText={search}
           value={q}
           style={styles.searchbar}
           inputStyle={styles.searchbarInput}
           placeholderTextColor="#021b42"
+        />
+      </View>
+
+      {/* Nút bật/tắt lịch cũ */}
+      <View style={styles.toggleContainer}>
+        <Text style={styles.toggleText}>Hiển thị lịch tiêm cũ</Text>
+        <Switch
+          value={showPastSchedules}
+          onValueChange={togglePastSchedules}
+          trackColor={{ false: "#767577", true: "#0c5776" }}
+          thumbColor={showPastSchedules ? "#f8dad0" : "#f4f3f4"}
         />
       </View>
 
@@ -212,13 +216,13 @@ const InjectionSearch = ({ navigation }) => {
             keyExtractor={(item) => item.id.toString()}
             ListEmptyComponent={
               <Text style={styles.emptyText}>
-                {q || filterMonth || filterYear
+                {q || filterSite
                   ? "Không tìm thấy lịch tiêm với bộ lọc này."
-                  : "Không có lịch tiêm sắp tới."}
+                  : "Không có lịch tiêm."}
               </Text>
             }
             contentContainerStyle={styles.listContainer}
-            onEndReached={loadMoreSchedules}
+            onEndReached={loadMore}
             onEndReachedThreshold={0.5}
             ListFooterComponent={
               isLoadingMore ? (
@@ -229,7 +233,7 @@ const InjectionSearch = ({ navigation }) => {
         </View>
       )}
 
-      {/* Modal cho bộ lọc tháng và năm */}
+      {/* Modal cho bộ lọc địa điểm */}
       <Modal
         transparent={true}
         visible={isFilterVisible}
@@ -238,31 +242,16 @@ const InjectionSearch = ({ navigation }) => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Tiêu đề cố định cho Tháng và Năm */}
-            <View style={styles.fixedTitleContainer}>
-              <Text style={[styles.fixedTitle, { width: 170 }]}>Tháng</Text>
-              <Text style={[styles.fixedTitle, { width: 130 }]}>Năm</Text>
-            </View>
-            {/* Picker để chọn tháng và năm */}
+            <Text style={styles.fixedTitle}>Địa điểm</Text>
             <View style={styles.pickerContainer}>
               <Picker
-                selectedValue={filterMonth}
-                style={[styles.picker, { width: 150 }]}
-                onValueChange={(itemValue) => setFilterMonth(itemValue)}
+                selectedValue={filterSite}
+                style={styles.picker}
+                onValueChange={(itemValue) => setFilterSite(itemValue)}
               >
                 <Picker.Item label="Tất cả" value="" />
-                {months.map((month, index) => (
-                  <Picker.Item key={month} label={vietnameseMonths[index]} value={month} />
-                ))}
-              </Picker>
-              <Picker
-                selectedValue={filterYear}
-                style={[styles.picker, { width: 140 }]}
-                onValueChange={(itemValue) => setFilterYear(itemValue)}
-              >
-                <Picker.Item label="Tất cả" value="" />
-                {years.map((year) => (
-                  <Picker.Item key={year} label={year} value={year} />
+                {sites.map((site) => (
+                  <Picker.Item key={site.id} label={site.name} value={site.name} />
                 ))}
               </Picker>
             </View>
@@ -335,6 +324,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#021b42",
   },
+  toggleContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  toggleText: {
+    fontSize: 16,
+    color: "#021b42",
+  },
   contentContainer: {
     flex: 1,
   },
@@ -380,22 +380,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#0c5776",
     paddingVertical: 20,
   },
-  fixedTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 80,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f9ccbd",
-  },
   fixedTitle: {
     fontSize: 16,
     color: "#fff",
     fontWeight: "bold",
+    textAlign: "center",
+    paddingBottom: 20,
   },
   pickerContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     backgroundColor: "#0c5776",
     borderRadius: 8,
     paddingHorizontal: 30,
