@@ -7,12 +7,53 @@ from .models import Vaccine, User, Appointment, VaccinationRecord, InjectionSche
 
 
 class VaccineSerializer(ModelSerializer):
+    vaccine_type_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Vaccine
-        fields = '__all__'
+        fields = [
+            'id',
+            'active',
+            'created_date',
+            'updated_date',
+            'name',
+            'image',
+            'vaccine_type',
+            'manufacturer',
+            'dose_count',
+            'dose_interval',
+            'age_group',
+            'description',
+            'approved_date',
+            'status',
+            'vaccine_type_name',
+        ]
 
     def get_vaccine_type_name(self, obj):
         return obj.vaccine_type.name if obj.vaccine_type else None
+
+class InjectionScheduleSerializer(serializers.ModelSerializer):
+    vaccine_name = serializers.SerializerMethodField()
+    vaccine_type_name = serializers.SerializerMethodField()
+    site_name = serializers.SerializerMethodField()
+
+
+    class Meta:
+        model = InjectionSchedule
+        fields = [
+            'id', 'active', 'created_date', 'updated_date',
+            'date', 'slot_count', 'vaccine', 'site',
+            'vaccine_name','vaccine_type_name' , 'site_name'
+        ]
+
+    def get_vaccine_name(self, obj):
+        return obj.vaccine.name if obj.vaccine else None
+
+    def get_vaccine_type_name(self, obj):
+        return obj.vaccine.vaccine_type.name if obj.vaccine and obj.vaccine.vaccine_type else None
+
+    def get_site_name(self, obj):
+        return obj.site.name if obj.site else None
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -104,15 +145,39 @@ class VaccinationRecordSerializer(ModelSerializer):
 
 
 class AppointmentSerializer(ModelSerializer):
+    schedule = InjectionScheduleSerializer(read_only=True)
+    schedule_id = serializers.PrimaryKeyRelatedField(
+        queryset=InjectionSchedule.objects.all(),
+        source='schedule',
+        write_only=True
+    )
+
     class Meta:
         model = Appointment
         fields = '__all__'
         read_only_fields = ('created_at', 'user')
 
 class InjectionScheduleSerializer(serializers.ModelSerializer):
+    vaccine_name = serializers.SerializerMethodField()
+    vaccine_type_name = serializers.SerializerMethodField()
+    site_name = serializers.SerializerMethodField()
+
     class Meta:
         model = InjectionSchedule
-        fields = '__all__'
+        fields = [
+            'id', 'active', 'created_date', 'updated_date',
+            'date', 'slot_count', 'vaccine', 'site',
+            'vaccine_name','vaccine_type_name' , 'site_name'
+        ]
+
+    def get_vaccine_name(self, obj):
+        return obj.vaccine.name if obj.vaccine else None
+
+    def get_vaccine_type_name(self, obj):
+        return obj.vaccine.vaccine_type.name if obj.vaccine and obj.vaccine.vaccine_type else None
+
+    def get_site_name(self, obj):
+        return obj.site.name if obj.site else None
 
 class InjectionSiteSerializer(serializers.ModelSerializer):
     class Meta:

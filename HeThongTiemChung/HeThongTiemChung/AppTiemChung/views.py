@@ -141,7 +141,6 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
                 [appointment.user.email],
                 fail_silently=False,
             )
-
         return Response({'message': f'Appointment confirmation updated to {confirm_value}.'})
 
     @action(detail=True, methods=['patch'], url_path='mark-inoculated')
