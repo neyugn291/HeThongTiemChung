@@ -179,20 +179,20 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
             return Response({'detail': 'Missing is_confirmed field.'}, status=400)
         appointment.is_confirmed = confirm_value
         appointment.save()
+        
+        if confirm_value:
+            send_mail(
+                'Appointment Confirmed',
+                f'Your appointment on {appointment.schedule.date} at {appointment.schedule.site.name} has been confirmed.',
+                settings.EMAIL_HOST_USER,
+                [appointment.user.email],
+                fail_silently=False,
+            )
+        return Response({'message': f'Appointment confirmation updated to {confirm_value}.'})
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
-    # if confirm_value:
-    #     send_mail(
-    #         'Appointment Confirmed',
-    #         f'Your appointment on {appointment.schedule.date} at {appointment.schedule.site.name} has been confirmed.',
-    #         settings.EMAIL_HOST_USER,
-    #         [appointment.user.email],
-    #         fail_silently=False,
-    #     )
-    #
-    # return Response({'message': f'Appointment confirmation updated to {confirm_value}.'})
-
+  
 
     @action(detail=True, methods=['patch'], url_path='mark-inoculated')
     def mark_inoculated(self, request, pk=None):
