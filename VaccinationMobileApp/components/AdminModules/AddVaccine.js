@@ -10,11 +10,12 @@ import {
   Alert,
   Modal,
   Switch,
+  FlatList,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
-import { Picker } from "@react-native-picker/picker";
 
 const vietnameseMonths = [
   "Tháng 1",
@@ -31,10 +32,17 @@ const vietnameseMonths = [
   "Tháng 12",
 ];
 
+const statusOptions = [
+  { label: "Đang sử dụng", value: "Active" },
+  { label: "Ngừng sử dụng", value: "Discontinued" },
+  { label: "Chưa phê duyệt", value: "Pending Approval" },
+  { label: "Đã hết hạn", value: "Expired" },
+];
+
 const AddVaccine = ({ navigation }) => {
   const [formData, setFormData] = useState({
     name: "",
-    vaccine_type: "", // Lưu ID của vaccine type
+    vaccine_type: "",
     manufacturer: "",
     dose_count: "",
     dose_interval: "",
@@ -42,11 +50,13 @@ const AddVaccine = ({ navigation }) => {
     description: "",
     approved_date: "",
     status: "Active",
+    active: true,
   });
-  const [vaccineTypes, setVaccineTypes] = useState([]); // [{ id, name }, ...]
+  const [vaccineTypes, setVaccineTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [isVaccineTypePickerVisible, setVaccineTypePickerVisible] = useState(false);
+  const [isStatusPickerVisible, setStatusPickerVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
@@ -62,24 +72,32 @@ const AddVaccine = ({ navigation }) => {
     (currentYear - i).toString()
   );
 
-  // Định nghĩa displayDate
   const displayDate =
     selectedDay && selectedMonth && selectedYear
       ? `${selectedDay} - ${vietnameseMonths[parseInt(selectedMonth) - 1]} - ${selectedYear}`
       : "--/--/----";
+
+  const selectedStatusLabel =
+    statusOptions.find((option) => option.value === formData.status)?.label ||
+    "Chọn trạng thái";
 
   useEffect(() => {
     const fetchVaccineTypes = async () => {
       try {
         setLoading(true);
         const token = await AsyncStorage.getItem("token");
-        console.log("Token:", token ? "Valid" : "Missing"); // Debug
-        console.log("Fetching vaccine types from:", endpoints.vaccineTypes()); // Debug
+        console.log("Fetching vaccine types with token:", token ? token.substring(0, 10) + "..." : "Missing");
+        console.log("Endpoint:", endpoints.vaccineTypes());
         const response = await authApis(token).get(endpoints.vaccineTypes());
-        console.log("VaccineTypes API response:", JSON.stringify(response.data, null, 2)); // Debug
-        const data = response.data.results || response.data; // Xử lý phân trang
+        console.log("VaccineTypes API response:", JSON.stringify(response.data, null, 2));
+        let data = Array.isArray(response.data) ? response.data : response.data.results || [];
         if (Array.isArray(data)) {
-          setVaccineTypes(data);
+          const formattedTypes = data.map((item) => ({
+            id: item.id.toString(),
+            name: item.name || "Không xác định",
+          }));
+          setVaccineTypes(formattedTypes);
+          console.log("Formatted vaccineTypes:", JSON.stringify(formattedTypes, null, 2));
         } else {
           console.warn("Unexpected response format:", response.data);
           setVaccineTypes([]);
@@ -91,17 +109,14 @@ const AddVaccine = ({ navigation }) => {
           status: error.response?.status,
           data: error.response?.data,
         });
-        Alert.alert("Lỗi", "Không thể tải danh sách loại vaccine. Vui lòng kiểm tra kết nối hoặc đăng nhập lại.");
+        Alert.alert("Lỗi", "Không thể tải danh sách loại vaccine.");
+        setVaccineTypes([]);
       } finally {
         setLoading(false);
       }
     };
     fetchVaccineTypes();
   }, []);
-
-  useEffect(() => {
-    console.log("Current vaccineTypes state:", JSON.stringify(vaccineTypes, null, 2)); // Debug
-  }, [vaccineTypes]);
 
   const handleDayMonthYearChange = () => {
     if (selectedDay && selectedMonth && selectedYear) {
@@ -126,7 +141,7 @@ const AddVaccine = ({ navigation }) => {
     }
 
     if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum)) {
-      return { isValid: false, error: "Ngày, tháng, năm phải là số hợp lệ." };
+      return { isValid: false, error: "Ngày, tháng, năm không hợp lệ." };
     }
 
     const today = new Date();
@@ -162,21 +177,32 @@ const AddVaccine = ({ navigation }) => {
       }
     }
 
+    if (!statusOptions.some((option) => option.value === formData.status)) {
+      Alert.alert("Lỗi", "Trạng thái không hợp lệ.");
+      return;
+    }
+
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      console.log("Posting vaccine to:", endpoints.vaccines()); // Debug
       const payload = {
-        ...formData,
-        vaccine_type: parseInt(formData.vaccine_type), // Đảm bảo là số
+        name: formData.name,
+        vaccine_type: parseInt(formData.vaccine_type),
+        manufacturer: formData.manufacturer || null,
         dose_count: formData.dose_count ? parseInt(formData.dose_count) : null,
-        dose_interval: formData.dose_interval ? parseInt(formData.dose_interval) : null,
-        active: formData.status === "Active",
+        dose_interval: formData.dose_interval || null,
+        age_group: formData.age_group || null,
+        description: formData.description || null,
+        approved_date: formData.approved_date || null,
+        status: formData.status,
+        active: formData.active,
       };
-      console.log("Payload:", JSON.stringify(payload, null, 2)); // Debug
+      console.log("Submit payload:", JSON.stringify(payload, null, 2));
       await authApis(token).post(endpoints.vaccines(), payload);
 
-      const updatedVaccinesResponse = await authApis(token).get(endpoints.vaccines());
+      const updatedVaccinesResponse = await authApis(token).get(
+        endpoints.vaccines()
+      );
       const updatedVaccines = updatedVaccinesResponse.data;
 
       Alert.alert("Thành công", "Thêm vaccine thành công!", [
@@ -193,15 +219,43 @@ const AddVaccine = ({ navigation }) => {
         status: error.response?.status,
         data: error.response?.data,
       });
-      Alert.alert("Lỗi", "Không thể thêm vaccine. Vui lòng kiểm tra dữ liệu hoặc kết nối.");
+      Alert.alert(
+        "Lỗi",
+        error.response?.data?.status?.[0] ||
+          "Không thể thêm vaccine. Vui lòng kiểm tra dữ liệu."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const selectedVaccineTypeName =
-    vaccineTypes.find((type) => type.id === parseInt(formData.vaccine_type))?.name ||
+    vaccineTypes.find((type) => type.id === formData.vaccine_type)?.name ||
     "Chọn loại vaccine";
+
+  const renderVaccineTypeItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.comboboxItem}
+      onPress={() => {
+        setFormData({ ...formData, vaccine_type: item.id });
+        setVaccineTypePickerVisible(false);
+      }}
+    >
+      <Text style={styles.comboboxItemText}>{item.name}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderStatusItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.comboboxItem}
+      onPress={() => {
+        setFormData({ ...formData, status: item.value });
+        setStatusPickerVisible(false);
+      }}
+    >
+      <Text style={styles.comboboxItemText}>{item.label}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -232,10 +286,7 @@ const AddVaccine = ({ navigation }) => {
           <Text style={styles.label}>Loại vaccine</Text>
           <TouchableOpacity
             style={styles.dateInput}
-            onPress={() => {
-              console.log("Opening vaccine type picker. vaccineTypes:", JSON.stringify(vaccineTypes, null, 2)); // Debug
-              setVaccineTypePickerVisible(true);
-            }}
+            onPress={() => setVaccineTypePickerVisible(true)}
             activeOpacity={0.7}
           >
             <Text style={styles.dateText}>{selectedVaccineTypeName}</Text>
@@ -309,33 +360,49 @@ const AddVaccine = ({ navigation }) => {
             activeOpacity={0.7}
           >
             <Text style={styles.dateText}>{displayDate}</Text>
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={() => {
-                setSelectedDay("");
-                setSelectedMonth("");
-                setSelectedYear("");
-                handleDayMonthYearChange();
-              }}
-            >
-              <MaterialCommunityIcons name="close" size={20} color="#021b42" />
-            </TouchableOpacity>
+            {formData.approved_date && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => {
+                  setSelectedDay("");
+                  setSelectedMonth("");
+                  setSelectedYear("");
+                  setFormData({ ...formData, approved_date: "" });
+                }}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#021b42" />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+
+          <Text style={styles.label}>Trạng thái</Text>
+          <TouchableOpacity
+            style={styles.dateInput}
+            onPress={() => setStatusPickerVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.dateText}>{selectedStatusLabel}</Text>
+            {formData.status && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setFormData({ ...formData, status: "" })}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#021b42" />
+              </TouchableOpacity>
+            )}
           </TouchableOpacity>
 
           <View style={styles.switchContainer}>
             <Text style={styles.label}>
-              {formData.status === "Active" ? "Hoạt động" : "Không hoạt động"}
+              {formData.active ? "Hoạt động" : "Không hoạt động"}
             </Text>
             <Switch
-              value={formData.status === "Active"}
+              value={formData.active}
               onValueChange={(value) =>
-                setFormData({
-                  ...formData,
-                  status: value ? "Active" : "Inactive",
-                })
+                setFormData({ ...formData, active: value })
               }
               trackColor={{ false: "#767577", true: "#0c5776" }}
-              thumbColor={formData.status === "Active" ? "#f4f3f4" : ""}
+              thumbColor={formData.active ? "#f4f3f4" : "#f4f3f4"}
             />
           </View>
 
@@ -351,7 +418,6 @@ const AddVaccine = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Modal cho Picker Ngày */}
       <Modal
         transparent={true}
         visible={isDatePickerVisible}
@@ -361,11 +427,11 @@ const AddVaccine = ({ navigation }) => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.fixedTitleContainer}>
-              <Text style={[styles.modalTitle, { width: 70 }]}>Ngày</Text>
-              <Text style={[styles.modalTitle, { width: 160 }]}>Tháng</Text>
-              <Text style={[styles.modalTitle, { width: 100 }]}>Năm</Text>
+              <Text style={[styles.fixedTitle, { width: 130 }]}>Ngày</Text>
+              <Text style={[styles.fixedTitle, { width: 140 }]}>Tháng</Text>
+              <Text style={[styles.fixedTitle, { width: 130 }]}>Năm</Text>
             </View>
-            <View style={styles.pickerContainerView}>
+            <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedDay}
                 style={[styles.picker, { width: 100 }]}
@@ -422,7 +488,6 @@ const AddVaccine = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Modal cho Picker Loại Vaccine */}
       <Modal
         transparent={true}
         visible={isVaccineTypePickerVisible}
@@ -431,33 +496,20 @@ const AddVaccine = ({ navigation }) => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Loại Vaccine</Text>
-            <View style={styles.pickerContainerView}>
-              <Picker
-                selectedValue={formData.vaccine_type}
-                style={[styles.picker, { width: '100%' }]}
-                onValueChange={(itemValue) => {
-                  console.log("Selected vaccine type ID:", itemValue); // Debug
-                  setFormData({ ...formData, vaccine_type: itemValue });
-                  setVaccineTypePickerVisible(false);
-                }}
-              >
-                <Picker.Item label="Chọn loại vaccine" value="" />
-                {vaccineTypes.length > 0 ? (
-                  vaccineTypes.map((type) => {
-                    console.log("Rendering vaccine type:", type.name, type.id); // Debug
-                    return (
-                      <Picker.Item
-                        key={type.id.toString()}
-                        label={type.name}
-                        value={type.id.toString()}
-                      />
-                    );
-                  })
-                ) : (
-                  <Picker.Item label="Không có loại vaccine" value="" />
-                )}
-              </Picker>
+            <Text style={styles.typeTitle}>Chọn Loại Vaccine</Text>
+            <View style={styles.comboboxContainer}>
+              {vaccineTypes.length > 0 ? (
+                <FlatList
+                  data={vaccineTypes}
+                  renderItem={renderVaccineTypeItem}
+                  keyExtractor={(item) => item.id}
+                  ListEmptyComponent={
+                    <Text style={styles.emptyText}>Không có loại vaccine</Text>
+                  }
+                />
+              ) : (
+                <Text style={styles.emptyText}>Không có loại vaccine</Text>
+              )}
             </View>
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -466,11 +518,40 @@ const AddVaccine = ({ navigation }) => {
               >
                 <Text style={styles.modalButtonText}>Hủy</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent={true}
+        visible={isStatusPickerVisible}
+        animationType="slide"
+        onRequestClose={() => setStatusPickerVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.typeTitle}>Chọn Trạng Thái</Text>
+            <View style={styles.comboboxContainer}>
+              {statusOptions.length > 0 ? (
+                <FlatList
+                  data={statusOptions}
+                  renderItem={renderStatusItem}
+                  keyExtractor={(item) => item.value}
+                  ListEmptyComponent={
+                    <Text style={styles.emptyText}>Không có trạng thái</Text>
+                  }
+                />
+              ) : (
+                <Text style={styles.emptyText}>Không có trạng thái</Text>
+              )}
+            </View>
+            <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.doneButton]}
-                onPress={() => setVaccineTypePickerVisible(false)}
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setStatusPickerVisible(false)}
               >
-                <Text style={styles.modalButtonText}>Xong</Text>
+                <Text style={styles.modalButtonText}>Hủy</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -552,17 +633,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  pickerContainerView: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    marginBottom: 16,
-    padding: 10,
-  },
-  picker: {
-    height: 200,
-    color: "#021b42",
-    width: '100%',
-  },
   submitButton: {
     marginTop: 16,
     backgroundColor: "#0c5776",
@@ -582,7 +652,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#0c5776",
-    paddingVertical: 16,
+    paddingVertical: 20,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
@@ -590,26 +660,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 30,
-    paddingBottom: 12,
+    paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#f9ccbd",
   },
-  modalTitle: {
-    fontSize: 18,
+  fixedTitle: {
+    fontSize: 16,
     color: "#fff",
     fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 12,
+  },
+  pickerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "#0c5776",
+    borderRadius: 8,
+  },
+  picker: {
+    height: 250,
+    color: "#021b42",
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 30,
-    marginTop: 12,
+    marginTop: 20,
   },
   modalButton: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: 5,
     flex: 1,
     alignItems: "center",
   },
@@ -623,7 +701,32 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: "#021b42",
     fontSize: 16,
+  },
+  typeTitle: {
+    fontSize: 18,
+    color: "#fff",
     fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  comboboxContainer: {
+    paddingHorizontal: 30,
+    maxHeight: 250,
+  },
+  comboboxItem: {
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#6a97a4",
+  },
+  comboboxItemText: {
+    fontSize: 16,
+    color: "#f4f3f4",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#021b42",
+    textAlign: "center",
+    padding: 12,
   },
 });
 

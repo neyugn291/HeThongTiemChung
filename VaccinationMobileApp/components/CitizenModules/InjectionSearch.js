@@ -20,14 +20,14 @@ import { Picker } from "@react-native-picker/picker";
 const InjectionSearch = ({ navigation }) => {
   const [schedules, setSchedules] = useState([]);
   const [filteredSchedules, setFilteredSchedules] = useState([]);
-  const [sites, setSites] = useState([]); // Danh sách địa điểm từ site_name
+  const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filterSite, setFilterSite] = useState(""); // Bộ lọc địa điểm
+  const [filterSite, setFilterSite] = useState("");
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [q, setQ] = useState(""); // Từ khóa tìm kiếm
-  const [showPastSchedules, setShowPastSchedules] = useState(false); // Mặc định không hiển thị lịch cũ
+  const [q, setQ] = useState("");
+  const [showPastSchedules, setShowPastSchedules] = useState(false);
   const itemsPerPage = 20;
 
   useEffect(() => {
@@ -40,18 +40,25 @@ const InjectionSearch = ({ navigation }) => {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
       const endpoint = showPastSchedules
-        ? endpoints["allSchedules"] // Giả định endpoint lấy tất cả lịch
-        : endpoints["upcomingSchedules"];
+        ? endpoints["allSchedules"] || "/api/schedules/"
+        : endpoints["upcomingSchedules"] || "/api/schedules/upcoming/";
+      console.log("Fetching schedules from:", endpoint);
       const response = await authApis(token).get(endpoint);
-      console.log("Schedules API response:", endpoint, response.data); // Debug
-      const sortedSchedules = response.data.sort(
-        (a, b) => new Date(a.date) - new Date(b.date)
-      );
-      // Fallback client-side lọc nếu không có allSchedules
-      const filteredData = showPastSchedules
-        ? sortedSchedules
-        : sortedSchedules.filter((schedule) => new Date(schedule.date) >= new Date());
+      console.log("Schedules API response:", JSON.stringify(response.data, null, 2));
 
+      // Sắp xếp lịch
+      const sortedSchedules = response.data.sort((a, b) =>
+        showPastSchedules
+          ? new Date(b.date) - new Date(a.date) // Giảm dần: gần nhất trên cùng
+          : new Date(a.date) - new Date(b.date) // Tăng dần: gần nhất trên cùng
+      );
+
+      // Lọc client-side
+      const filteredData = showPastSchedules
+        ? sortedSchedules.filter((schedule) => new Date(schedule.date).getTime() < new Date().setHours(0, 0, 0, 0)) // Chỉ lịch cũ
+        : sortedSchedules.filter((schedule) => new Date(schedule.date).getTime() >= new Date().setHours(0, 0, 0, 0)); // Chỉ lịch sắp tới
+
+      // Lấy danh sách địa điểm duy nhất
       const uniqueSites = [
         ...new Set(
           sortedSchedules
@@ -59,17 +66,17 @@ const InjectionSearch = ({ navigation }) => {
             .map((schedule) => schedule.site_name)
         ),
       ].map((name, index) => ({ id: index + 1, name }));
-      console.log("Unique sites:", uniqueSites);
+      console.log("Unique sites:", JSON.stringify(uniqueSites));
 
       setSites(uniqueSites);
       setSchedules(filteredData);
       filterSchedules(filteredData, q, filterSite, 1);
     } catch (error) {
-      console.error("Lỗi khi tải lịch tiêm:", error);
+      console.error("Error fetching schedules:", error);
       Alert.alert("Lỗi", "Không thể tải danh sách lịch tiêm.");
       setSchedules([]);
       setFilteredSchedules([]);
-      setSites([]); // Reset sites nếu lỗi
+      setSites([]);
     } finally {
       setLoading(false);
     }
@@ -84,7 +91,7 @@ const InjectionSearch = ({ navigation }) => {
       filtered = filtered.filter((schedule) => schedule.site_name === site);
     }
 
-    // Tìm kiếm theo vaccine_name hoặc vaccine_type_name
+    // Tìm kiếm
     if (searchQuery) {
       filtered = filtered.filter((schedule) =>
         (schedule.vaccine_name &&
@@ -99,7 +106,6 @@ const InjectionSearch = ({ navigation }) => {
     const endIndex = startIndex + itemsPerPage;
     const paginatedSchedules = filtered.slice(startIndex, endIndex);
 
-    // Cập nhật danh sách hiển thị
     setFilteredSchedules((prev) =>
       pageNum === 1 ? paginatedSchedules : [...prev, ...paginatedSchedules]
     );
@@ -139,7 +145,7 @@ const InjectionSearch = ({ navigation }) => {
     setIsFilterVisible(false);
   };
 
-  // Bật/tắt hiển thị lịch cũ
+  // Toggle lịch cũ
   const togglePastSchedules = () => {
     setShowPastSchedules((prev) => !prev);
     setPage(1);
@@ -151,16 +157,16 @@ const InjectionSearch = ({ navigation }) => {
     <View style={styles.scheduleCard}>
       <View style={styles.scheduleInfo}>
         <Text style={[styles.scheduleText, { fontWeight: "bold" }]}>
-          {item?.vaccine_name || "Không xác định"}
+          {item.vaccine_name || "Không xác định"}
         </Text>
         <Text style={styles.scheduleText}>
-          Loại: {item?.vaccine_type_name || "Không xác định"}
+          Loại: {item.vaccine_type_name || "Không xác định"}
         </Text>
         <Text style={styles.scheduleText}>
           Ngày: {new Date(item.date).toLocaleDateString("vi-VN")}
         </Text>
         <Text style={styles.scheduleText}>
-          Địa điểm: {item?.site_name || "Không xác định"}
+          Địa điểm: {item.site_name || "Không xác định"}
         </Text>
         <Text style={styles.scheduleText}>Số lượng: {item.slot_count}</Text>
       </View>
@@ -346,7 +352,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f8dad0",
+    backgroundColor: "#f8dad0", // Màu chung cho tất cả lịch
     borderRadius: 8,
     padding: 16,
     marginBottom: 10,
