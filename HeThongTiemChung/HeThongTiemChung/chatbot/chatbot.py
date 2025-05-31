@@ -1,5 +1,6 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
 
 class Chatbot:
     def __init__(self):
@@ -15,6 +16,8 @@ class Chatbot:
         else:
             bot_input_ids = new_input_ids
 
-        self.chat_history_ids = self.model.generate(bot_input_ids, max_length=1000, pad_token_id=self.tokenizer.eos_token_id)
-        response = self.tokenizer.decode(self.chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
+        self.chat_history_ids = self.model.generate(bot_input_ids, max_length=1000,
+                                                    pad_token_id=self.tokenizer.eos_token_id)
+        response = self.tokenizer.decode(self.chat_history_ids[:, bot_input_ids.shape[-1]:][0],
+                                         skip_special_tokens=True)
         return response

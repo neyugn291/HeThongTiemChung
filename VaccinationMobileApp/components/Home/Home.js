@@ -58,10 +58,10 @@ const Home = ({ navigation, route }) => {
   }, [fadeAnim]);
 
   const featureList = [
-    { icon: "calendar-search", label: "Tra cứu lịch tiêm" },
-    { icon: "calendar-star", label: "Đặt lịch hẹn" },
-    { icon: "file-download-outline", label: "Tải giấy chứng nhận" },
-    { icon: "text-box-search-outline", label: "Tra cứu lịch sử tiêm" },
+    { icon: "calendar-search", label: "Tra cứu lịch tiêm", screen: "InjectionSearch" },
+    { icon: "calendar-star", label: "Đặt lịch hẹn", screen: "BookingAppointment" },
+    { icon: "file-download-outline", label: "Tải giấy chứng nhận", screen: "DownloadCertificate" },
+    { icon: "text-box-search-outline", label: "Tra cứu lịch sử tiêm", screen: "RecordSearch" },
   ];
 
   const navItems = [
@@ -134,7 +134,9 @@ const Home = ({ navigation, route }) => {
 
         <View style={Styles.gridContainer}>
           {featureList.map((item, index) => (
-            <TouchableOpacity key={index} style={Styles.gridItem}>
+            <TouchableOpacity key={index} style={Styles.gridItem} onPress={() => {
+              navigation.navigate(item.screen, { featureList });
+            }}>
               <View style={Styles.iconBox}>
                 <MaterialCommunityIcons name={item.icon} size={26} color="#0c5776" />
               </View>

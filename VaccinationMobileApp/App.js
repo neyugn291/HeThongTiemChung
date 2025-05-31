@@ -11,6 +11,16 @@ import StaffHome from "./components/Home/StaffHome";
 import AdminHome from "./components/Home/AdminHome";
 import Account from "./components/User/Account";
 import Profile from "./components/User/Profile";
+import InjectionSearch from "./components/CitizenModules/InjectionSearch";
+import BookingAppointment from "./components/CitizenModules/BookingAppointment";
+import DownloadCertificate from "./components/CitizenModules/DownloadCertificate";
+import RecordSearch from "./components/CitizenModules/RecordSearch";
+import Reminders from "./components/CitizenModules/Reminders";
+import VaccineManagement from "./components/AdminModules/VaccineManagement";
+import AccountManagement from "./components/AdminModules/AccountManagement";
+import AddVaccine from "./components/AdminModules/AddVaccine";
+import UpdateVaccine from "./components/AdminModules/UpdateVaccine";
+import TypeManagement from "./components/AdminModules/TypeManagement";
 
 // Reducer để quản lý trạng thái người dùng
 const MyUserReducer = (state, action) => {
@@ -42,6 +52,16 @@ const App = () => {
             <Stack.Screen name="AdminHome" component={AdminHome} />
             <Stack.Screen name="Account" component={Account} />
             <Stack.Screen name="Profile" component={Profile} />
+            <Stack.Screen name="InjectionSearch" component={InjectionSearch} />
+            <Stack.Screen name="BookingAppointment" component={BookingAppointment} />
+            <Stack.Screen name="DownloadCertificate" component={DownloadCertificate} />
+            <Stack.Screen name="RecordSearch" component={RecordSearch} />
+            <Stack.Screen name="Reminders" component={Reminders} />
+            <Stack.Screen name="VaccineManagement" component={VaccineManagement} />
+            <Stack.Screen name="AccountManagement" component={AccountManagement} />
+            <Stack.Screen name="AddVaccine" component={AddVaccine} />
+            <Stack.Screen name="UpdateVaccine" component={UpdateVaccine} />
+            <Stack.Screen name="TypeManagement" component={TypeManagement} />
           </Stack.Navigator>
         </NavigationContainer>
       </MyDispatchContext.Provider>

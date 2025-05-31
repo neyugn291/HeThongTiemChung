@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   picker: {
-    height: 200,
+    height: 250,
     color: "#021b42",
   },
   modalButtons: {

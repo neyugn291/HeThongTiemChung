@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('AppTiemChung', '0005_appointment_reminder_enabled'),
     ]
