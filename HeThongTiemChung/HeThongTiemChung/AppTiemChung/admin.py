@@ -7,6 +7,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils.html import mark_safe
+import json
 
 from .models import Vaccine, VaccineType, User, InjectionSite, InjectionSchedule, VaccinationRecord, Appointment
 
@@ -20,8 +21,12 @@ class AppTiemChungAdminSite(admin.AdminSite):
         ] + super().get_urls()
 
     def stats_view(self, request):
+        raw_stats = dao.count_vaccine_by_type()
+        stats_list = list(raw_stats)  # Chuyển QuerySet thành list dict
+        stats_json = mark_safe(json.dumps(stats_list))  # Chuyển sang JSON và đánh dấu safe
+
         return TemplateResponse(request, 'admin/stats.html', {
-            'stats': dao.count_vaccine_by_type()
+            'stats': stats_json
         })
 
 

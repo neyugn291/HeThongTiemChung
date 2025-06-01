@@ -25,8 +25,11 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.14',
-                 '127.0.0.1']  # Runserver IP Lan máy tính + port
+
+ALLOWED_HOSTS = ['192.168.4.41',
+                 '192.168.1.5',
+                 '127.0.0.1'] # Runserver IP Lan máy tính + port
+
 
 
 # Application definition
@@ -114,13 +117,14 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'vaccinationappdb',
         'USER': 'root',
-        'PASSWORD': 'Abc123',
+        'PASSWORD': 'Demo@123',
         'HOST': ''  # mặc định localhost
     }
 }
 
 INTERNAL_IPS = [
-    '192.168.1.14',  # Runserver IP Lan máy tính + port
+    '192.168.4.41',
+    '192.168.1.8', # Runserver IP Lan máy tính + port
     '127.0.0.1'
  ]
 
@@ -181,8 +185,9 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CLIENT_ID = 'kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup'
-CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK'
+
+CLIENT_ID = '57a5EHBjxyxNrliDkAZ79Yp0Jm1JhnXHqdnOwhxS'
+CLIENT_SECRET = 'Zb4sdownOVsENJwlJjAoutalA1ldsOZjrANecYrgjkndRpTlfhfjToGrTCnkEXPQFwm7KH0jaNOSFPPMdytq61HlPe5DnTcMf0KqhwCd39eiEEL1stJVrFQ82bPWHhCT'
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # bắt buộc
