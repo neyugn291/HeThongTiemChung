@@ -249,15 +249,24 @@ const BookingAppointment = ({ navigation }) => {
           {isAppointment ? (
             <>
               <Text style={[styles.itemText, { fontWeight: "bold" }]}>
-                Ngày đăng ký: {item.registered_at
-                  ? new Date(item.registered_at).toLocaleString("vi-VN")
+                Ngày hẹn tiêm: {item.schedule.date
+                  ? new Date(item.schedule.date).toLocaleString("vi-VN")
                   : "Không xác định"}
               </Text>
               <Text style={styles.itemText}>
-                Trạng thái hồ sơ: {item.is_confirmed ? "Đã xác nhận" : "Đang chờ"}
+                Tên vaccine: {item.schedule.vaccine_name || "Không xác định"}
               </Text>
               <Text style={styles.itemText}>
-                Trạng thái tiêm: {item.is_inoculated ? "Đã tiêm" : "Chưa tiêm"}
+                Loại vaccine: {item.schedule.vaccine_type_name || "Không xác định"}
+              </Text>
+              <Text style={styles.itemText}>
+                Địa điểm tiêm: {item.schedule.site_name || "Không xác định"}
+              </Text>
+              <Text style={styles.itemText}>
+                Trạng thái: {item.is_confirmed ? "Đã xác nhận" : "Đang chờ xác nhận"}
+              </Text>
+              <Text style={styles.itemText}>
+                Trạng thái tiêm: {item.is_inoculated ? "Đã hoàn thành tiêm chủng" : "Chưa hoàn thành"}
               </Text>
               {isUpcoming && (
                 <TouchableOpacity
