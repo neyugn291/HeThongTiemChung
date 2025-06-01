@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['192.168.4.41',
                  '127.0.0.1'] # Runserver IP Lan máy tính + port
 
 
+
 # Application definition
 
 INSTALLED_APPS = [

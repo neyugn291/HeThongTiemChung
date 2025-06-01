@@ -1,6 +1,7 @@
 import axios from "axios";
 
 
+
 // const BASE_URL = "http://192.168.1.14:8000"; // Chạy bằng IP Lan máy tính
 const BASE_URL = "http://192.168.4.41:8000"; // Chạy bằng IP Lan máy tính
 
@@ -14,7 +15,7 @@ export const endpoints = {
   injectionSites: "sites/",
   allSchedules: "schedules/",
   upcomingSchedules: "schedules/upcoming_schedules/",
-  appointments: "appointments/",
+  appointment: (id) => (id ? `appointment/${id}/` : "appointment/"),
   vaccines: (id) => (id ? `vaccines/${id}/` : "vaccines/"),
   vaccineTypes: (id) => (id ? `vaccine-types/${id}/` : "vaccine-types/"),
 };

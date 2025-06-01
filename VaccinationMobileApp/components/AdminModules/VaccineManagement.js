@@ -19,6 +19,7 @@ const VaccineManagement = ({ navigation, route }) => {
   const [vaccines, setVaccines] = useState([]);
   const [filteredVaccines, setFilteredVaccines] = useState([]);
   const [displayedVaccines, setDisplayedVaccines] = useState([]);
+  const [vaccineTypes, setVaccineTypes] = useState([]); // [{ id, name }, ...]
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -27,12 +28,8 @@ const VaccineManagement = ({ navigation, route }) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const itemsPerPage = 10;
 
-  // Lấy danh sách loại vaccine từ dữ liệu
-  const vaccineTypes = Array.from(
-    new Set(vaccines.map((v) => v.vaccine_type_name).filter(Boolean))
-  );
-
   useEffect(() => {
+    fetchVaccineTypes();
     if (route.params?.updatedVaccines) {
       const sortedVaccines = route.params.updatedVaccines.sort((a, b) =>
         a.name.localeCompare(b.name)
@@ -44,11 +41,34 @@ const VaccineManagement = ({ navigation, route }) => {
     }
   }, [route.params?.updatedVaccines]);
 
+  const fetchVaccineTypes = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await authApis(token).get(endpoints.vaccineTypes());
+      let data = Array.isArray(response.data)
+        ? response.data
+        : response.data.results || [];
+      if (Array.isArray(data)) {
+        const formattedTypes = data.map((item) => ({
+          id: item.id.toString(),
+          name: item.name || "Không xác định",
+        }));
+        setVaccineTypes(formattedTypes);
+      } else {
+        console.warn("Unexpected response format:", response.data);
+        setVaccineTypes([]);
+      }
+    } catch (error) {
+      console.error("Error fetching vaccine types:", error);
+      setVaccineTypes([]);
+    }
+  };
+
   const fetchVaccines = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).get(endpoints["vaccines"]());
+      const response = await authApis(token).get(endpoints.vaccines());
       const sortedVaccines = response.data.sort((a, b) =>
         a.name.localeCompare(b.name)
       );
@@ -73,7 +93,9 @@ const VaccineManagement = ({ navigation, route }) => {
 
     if (type) {
       filtered = filtered.filter(
-        (vaccine) => vaccine.vaccine_type_name === type
+        (vaccine) =>
+          vaccine.vaccine_type_name === type ||
+          vaccineTypes.find((vt) => vt.id === vaccine.vaccine_type?.toString())?.name === type
       );
     }
 
@@ -138,7 +160,7 @@ const VaccineManagement = ({ navigation, route }) => {
           Nhà sản xuất: {item?.manufacturer || "Không xác định"}
         </Text>
         <Text style={styles.vaccineText}>
-          Số lượng liều: {item?.dose_count || "Không xác định"}
+          {item?.active ? "Đang hoạt động" : "Không hoạt động"}
         </Text>
       </View>
     </TouchableOpacity>
@@ -212,7 +234,6 @@ const VaccineManagement = ({ navigation, route }) => {
         </View>
       )}
 
-      {/* Modal bộ lọc loại vaccine */}
       <Modal
         transparent={true}
         visible={isFilterVisible}
@@ -229,7 +250,7 @@ const VaccineManagement = ({ navigation, route }) => {
             >
               <Picker.Item label="Tất cả" value="" />
               {vaccineTypes.map((type) => (
-                <Picker.Item key={type} label={type} value={type} />
+                <Picker.Item key={type.id} label={type.name} value={type.name} />
               ))}
             </Picker>
             <View style={styles.modalButtons}>
