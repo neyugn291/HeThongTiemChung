@@ -21,6 +21,10 @@ import AccountManagement from "./components/AdminModules/AccountManagement";
 import AddVaccine from "./components/AdminModules/AddVaccine";
 import UpdateVaccine from "./components/AdminModules/UpdateVaccine";
 import TypeManagement from "./components/AdminModules/TypeManagement";
+import InjectionManagement from "./components/AdminModules/InjectionManagement";
+import SiteManagement from "./components/AdminModules/SiteManagement";
+import RecordManagement from "./components/StaffModules/RecordManagement";
+import EditHealthNote from "./components/StaffModules/EditHealthNote";
 
 // Reducer để quản lý trạng thái người dùng
 const MyUserReducer = (state, action) => {
@@ -62,6 +66,10 @@ const App = () => {
             <Stack.Screen name="AddVaccine" component={AddVaccine} />
             <Stack.Screen name="UpdateVaccine" component={UpdateVaccine} />
             <Stack.Screen name="TypeManagement" component={TypeManagement} />
+            <Stack.Screen name="InjectionManagement" component={InjectionManagement} />
+            <Stack.Screen name="SiteManagement" component={SiteManagement} />
+            <Stack.Screen name="RecordManagement" component={RecordManagement} />
+            <Stack.Screen name="EditHealthNote" component={EditHealthNote} />
           </Stack.Navigator>
         </NavigationContainer>
       </MyDispatchContext.Provider>

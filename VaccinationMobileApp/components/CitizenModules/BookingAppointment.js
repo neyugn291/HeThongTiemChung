@@ -23,6 +23,8 @@ const BookingAppointment = ({ navigation }) => {
   const [showAllAppointments, setShowAllAppointments] = useState(false);
   const itemsPerPage = 10;
 
+  const currentDate = new Date("2025-06-02T13:35:00+07:00"); // Thời gian hiện tại: 01:35 PM +07, 02/06/2025
+
   useEffect(() => {
     fetchSchedules();
     fetchUserAppointments();
@@ -38,7 +40,7 @@ const BookingAppointment = ({ navigation }) => {
       const response = await authApis(token).get(endpoints["upcomingSchedules"]);
       console.log("Schedules API response:", JSON.stringify(response.data, null, 2));
       const sortedSchedules = response.data
-        .filter((item) => item.date && new Date(item.date).getTime() >= new Date().setHours(0, 0, 0, 0))
+        .filter((item) => item.date && new Date(item.date) >= currentDate)
         .sort((a, b) => new Date(a.date) - new Date(b.date));
       setSchedules(sortedSchedules);
       if (!showAllAppointments) {
@@ -67,39 +69,37 @@ const BookingAppointment = ({ navigation }) => {
         console.warn("Appointments data is not an array:", response.data);
         throw new Error("Dữ liệu lịch hẹn không hợp lệ.");
       }
+
+      // Sắp xếp lịch hẹn theo ngày tiêm (schedule.date)
       const upcomingAppointments = response.data
         .filter((item) => {
           try {
-            return (
-              item.registered_at &&
-              new Date(item.registered_at).getTime() >= new Date().setHours(0, 0, 0, 0)
-            );
+            return item.schedule?.date && new Date(item.schedule.date) >= currentDate;
           } catch (e) {
             console.warn("Invalid appointment data:", item);
             return false;
           }
         })
-        .sort((a, b) => new Date(a.registered_at) - new Date(b.registered_at));
+        .sort((a, b) => new Date(a.schedule.date) - new Date(b.schedule.date));
+
       const pastAppointments = response.data
         .filter((item) => {
           try {
-            return (
-              item.registered_at &&
-              new Date(item.registered_at).getTime() < new Date().setHours(0, 0, 0, 0)
-            );
+            return item.schedule?.date && new Date(item.schedule.date) < currentDate;
           } catch (e) {
             console.warn("Invalid appointment data:", item);
             return false;
           }
         })
-        .sort((a, b) => new Date(a.registered_at) - new Date(b.registered_at));
+        .sort((a, b) => new Date(a.schedule.date) - new Date(b.schedule.date));
+
       const sortedAppointments = [...upcomingAppointments, ...pastAppointments];
       console.log(
         "Sorted appointments:",
         sortedAppointments.map((item) => ({
           id: item.id,
-          registered_at: item.registered_at,
-          schedule_id: item.schedule,
+          schedule_date: item.schedule?.date,
+          schedule_id: item.schedule?.id,
           status: item.is_confirmed ? "confirmed" : "pending",
         }))
       );
@@ -147,7 +147,7 @@ const BookingAppointment = ({ navigation }) => {
   const checkDuplicateAppointment = (schedule) => {
     return appointments.some(
       (appointment) =>
-        appointment.schedule === schedule.id &&
+        appointment.schedule?.id === schedule.id &&
         ["confirmed", "pending"].includes(appointment.is_confirmed ? "confirmed" : "pending")
     );
   };
@@ -206,7 +206,7 @@ const BookingAppointment = ({ navigation }) => {
       [
         { text: "Hủy", style: "cancel" },
         {
-          text: "Hủy",
+          text: "Xác nhận hủy",
           style: "destructive",
           onPress: async () => {
             try {
@@ -235,7 +235,7 @@ const BookingAppointment = ({ navigation }) => {
   const renderItem = ({ item }) => {
     const isAppointment = showAllAppointments;
     const isUpcoming = isAppointment
-      ? item.registered_at && new Date(item.registered_at).getTime() >= new Date().setHours(0, 0, 0, 0)
+      ? item.schedule?.date && new Date(item.schedule.date) >= currentDate
       : true;
 
     return (
@@ -249,18 +249,18 @@ const BookingAppointment = ({ navigation }) => {
           {isAppointment ? (
             <>
               <Text style={[styles.itemText, { fontWeight: "bold" }]}>
-                Ngày hẹn tiêm: {item.schedule.date
+                Ngày hẹn tiêm: {item.schedule?.date
                   ? new Date(item.schedule.date).toLocaleString("vi-VN")
                   : "Không xác định"}
               </Text>
               <Text style={styles.itemText}>
-                Tên vaccine: {item.schedule.vaccine_name || "Không xác định"}
+                Tên vaccine: {item.schedule?.vaccine_name || "Không xác định"}
               </Text>
               <Text style={styles.itemText}>
-                Loại vaccine: {item.schedule.vaccine_type_name || "Không xác định"}
+                Loại vaccine: {item.schedule?.vaccine_type_name || "Không xác định"}
               </Text>
               <Text style={styles.itemText}>
-                Địa điểm tiêm: {item.schedule.site_name || "Không xác định"}
+                Địa điểm tiêm: {item.schedule?.site_name || "Không xác định"}
               </Text>
               <Text style={styles.itemText}>
                 Trạng thái: {item.is_confirmed ? "Đã xác nhận" : "Đang chờ xác nhận"}
