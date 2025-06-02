@@ -41,9 +41,8 @@ const StaffHome = ({ navigation, route }) => {
   }, []);
 
   const featureList = [
-    { icon: "note-search-outline", label: "Tra cứu hồ sơ tiêm chủng", screen: "SearchRecords" },
-    { icon: "file-edit-outline", label: "Cập nhật trạng thái hồ sơ", screen: "UpdateRecords" },
-    { icon: "note-multiple-outline", label: "Thêm ghi chú sức khỏe", screen: "AddNotes" },
+    { icon: "file-edit-outline", label: "Cập nhật trạng thái hồ sơ", screen: "RecordManagement" },
+    { icon: "note-plus-outline", label: "Thêm ghi chú sức khỏe", screen: "EditHealthNote" },
   ];
 
   const navItems = [
