@@ -6,6 +6,8 @@ from rest_framework.views import APIView
 from datetime import datetime
 
 from chatbot.views import model
+from rest_framework.parsers import MultiPartParser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 
 
 def index(request):
@@ -200,6 +202,11 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
             )
         return Response({'message': f'Appointment confirmation updated to {confirm_value}.'})
 
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = User.objects.filter(is_active=True)
+    serializer_class = UserSerializer
+    parser_classes = [MultiPartParser]
+    
     @action(detail=True, methods=['patch'], url_path='mark-inoculated')
     def mark_inoculated(self, request, pk=None):
         appointment = self.get_queryset().filter(pk=pk).first()
@@ -215,13 +222,6 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointment.save()
         return Response({'message': f'Appointment inoculated status updated to {inoculated_value}.'})
 
-
-
-class UserViewSet(viewsets.ViewSet):
-    queryset = models.User.objects.filter(is_active=True)
-    serializer_class = serializers.UserSerializer
-    parser_classes = [parsers.MultiPartParser]
-
     @action(methods=['get'],url_path='current-user/history', detail=False, permission_classes=[permissions.IsAuthenticated])
     def history(self, request):
         """
@@ -233,27 +233,29 @@ class UserViewSet(viewsets.ViewSet):
         return Response(serialized.data)
 
     def get_permissions(self):
-        if self.action in ['current_user', 'history']:
-            return [permissions.IsAuthenticated()]
+        if self.action in ['current_user']:
+            return [IsAuthenticated()]
         elif self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAdminUser()]  # Chỉ admin mới thao tác với người dùng khác
-        return [permissions.AllowAny()]
+            return [IsAdminUser()]  # Chỉ admin mới thao tác với người dùng khác
+        return [AllowAny()]
 
     def list(self, request):
         users = models.User.objects.all()
         serializer = serializers.UserSerializer(users, many=True)
+
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         try:
             user = models.User.objects.get(pk=pk)
         except model.User.DoesNotExist:
+
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = serializers.UserSerializer(user)
+        serializer = UserSerializer(user)
         return Response(serializer.data)
 
     def create(self, request):
-        serializer = serializers.UserSerializer(data=request.data)
+        serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -261,52 +263,51 @@ class UserViewSet(viewsets.ViewSet):
 
     def update(self, request, pk=None):
         try:
+
             user = models.User.objects.get(pk=pk)
         except model.User.DoesNotExist:
+
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = serializers.UserSerializer(user, data=request.data)
+        serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             user = serializer.save()
-            return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
+            return Response({"message": "User updated successfully!"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk)
 
     def destroy(self, request, pk=None):
         try:
+
             user = models.User.objects.get(pk=pk)
         except model.User.DoesNotExist:
+
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['get', 'patch'], url_path='current-user', detail=False,
-            permission_classes=[permissions.IsAuthenticated])
+    @action(methods=['get', 'patch'], url_path='current-user', detail=False, permission_classes=[IsAuthenticated])
     def get_current_user(self, request):
-        """
-        Lấy hoặc cập nhật thông tin người dùng hiện tại
-        """
-
         u = request.user
         if not u.is_authenticated:
-            raise NotAuthenticated("Bạn chưa đăng nhập")
-        if request.method.__eq__('PATCH'):
-            serializer = serializers.UserSerializer(u, data=request.data, partial=True)
+            return Response({'detail': 'Bạn chưa đăng nhập'}, status=status.HTTP_401_UNAUTHORIZED)
+        if request.method == 'PATCH':
+            serializer = UserSerializer(u, data=request.data, partial=True)
             if serializer.is_valid():
                 validated_data = serializer.validated_data
-            for k, v in request.data.items():
-                if k.__eq__('password'):
-                    u.set_password(v)
-                elif k.__eq__('avatar'):
-                    if v:
-                        u.avatar = v;
-                elif k.__eq__('gender'):
-                    u.gender = v
-                elif k.__eq__('birth_date'):
-                    u.birth_date = v
-                else:
-                    setattr(u, k, v)
-            u.save()
-
-        return Response(serializers.UserSerializer(u).data)
+                for k, v in request.data.items():
+                    if k == 'password':
+                        u.set_password(v)
+                    elif k == 'avatar':
+                        if v:
+                            u.avatar = v
+                    elif k in ['gender', 'birth_date', 'citizen_id', 'phone_number', 'first_name', 'last_name']:
+                        setattr(u, k, v)
+                u.save()
+                return Response({"message": "User updated successfully!"}, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(UserSerializer(u).data)
 
 
 import io
