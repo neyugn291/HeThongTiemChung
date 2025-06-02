@@ -26,6 +26,8 @@ import SiteManagement from "./components/AdminModules/SiteManagement";
 import RecordManagement from "./components/StaffModules/RecordManagement";
 import EditHealthNote from "./components/StaffModules/EditHealthNote";
 
+import StatScreen from "./components/User/StatScreen";
+
 // Reducer để quản lý trạng thái người dùng
 const MyUserReducer = (state, action) => {
   switch (action.type) {
@@ -70,6 +72,7 @@ const App = () => {
             <Stack.Screen name="SiteManagement" component={SiteManagement} />
             <Stack.Screen name="RecordManagement" component={RecordManagement} />
             <Stack.Screen name="EditHealthNote" component={EditHealthNote} />
+            <Stack.Screen name="Stats" component={StatScreen}/> 
           </Stack.Navigator>
         </NavigationContainer>
       </MyDispatchContext.Provider>

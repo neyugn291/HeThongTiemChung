@@ -40,8 +40,8 @@ const Login = () => {
       const loginData = {
         username,
         password,
-        client_id: "kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup",
-        client_secret: "UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK",
+        client_id: "57a5EHBjxyxNrliDkAZ79Yp0Jm1JhnXHqdnOwhxS",
+        client_secret: "Zb4sdownOVsENJwlJjAoutalA1ldsOZjrANecYrgjkndRpTlfhfjToGrTCnkEXPQFwm7KH0jaNOSFPPMdytq61HlPe5DnTcMf0KqhwCd39eiEEL1stJVrFQ82bPWHhCT",
         grant_type: "password",
       };
       console.log("Dữ liệu gửi lành đăng nhập:", loginData);

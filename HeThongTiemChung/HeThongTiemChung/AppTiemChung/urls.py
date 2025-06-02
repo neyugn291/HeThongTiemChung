@@ -15,8 +15,10 @@ router.register(r'schedules', views.InjectionScheduleViewSet, basename='injectio
 router.register(r'sites', views.InjectionSiteViewSet, basename='injectionsite')
 router.register(r'chatmessages', views.ChatMessageViewSet, basename='message')
 
+
 urlpatterns = [
     path('', include(router.urls)),  # Bao gồm tất cả các URL từ router
     path('', views.index, name="index"),  # URL gốc trỏ tới index (nếu cần)
     path('chat/', views.chat_view, name='chat'),
+    path('stats/', views.StatsAPIView.as_view(), name='stats-api'),
 ]
