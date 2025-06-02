@@ -25,7 +25,8 @@ import InjectionManagement from "./components/AdminModules/InjectionManagement";
 import SiteManagement from "./components/AdminModules/SiteManagement";
 import RecordManagement from "./components/StaffModules/RecordManagement";
 import EditHealthNote from "./components/StaffModules/EditHealthNote";
-
+import AddAccount from "./components/AdminModules/AddAccount";
+import EditAccount from "./components/AdminModules/EditAccount";
 import StatScreen from "./components/User/StatScreen";
 
 // Reducer để quản lý trạng thái người dùng
@@ -72,6 +73,8 @@ const App = () => {
             <Stack.Screen name="SiteManagement" component={SiteManagement} />
             <Stack.Screen name="RecordManagement" component={RecordManagement} />
             <Stack.Screen name="EditHealthNote" component={EditHealthNote} />
+            <Stack.Screen name="AddAccount" component={AddAccount} />
+            <Stack.Screen name="EditAccount" component={EditAccount} />
             <Stack.Screen name="Stats" component={StatScreen}/> 
           </Stack.Navigator>
         </NavigationContainer>
