@@ -22,6 +22,8 @@ import AddVaccine from "./components/AdminModules/AddVaccine";
 import UpdateVaccine from "./components/AdminModules/UpdateVaccine";
 import TypeManagement from "./components/AdminModules/TypeManagement";
 
+import StatScreen from "./components/User/StatScreen";
+
 // Reducer để quản lý trạng thái người dùng
 const MyUserReducer = (state, action) => {
   switch (action.type) {
@@ -62,6 +64,8 @@ const App = () => {
             <Stack.Screen name="AddVaccine" component={AddVaccine} />
             <Stack.Screen name="UpdateVaccine" component={UpdateVaccine} />
             <Stack.Screen name="TypeManagement" component={TypeManagement} />
+
+            <Stack.Screen name="Stats" component={StatScreen}/> 
           </Stack.Navigator>
         </NavigationContainer>
       </MyDispatchContext.Provider>

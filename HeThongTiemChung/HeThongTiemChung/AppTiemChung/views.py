@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
 from datetime import datetime
 
 from chatbot.views import model
@@ -456,6 +457,18 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
+    def partial_update(self, request, pk=None):
+        try:
+            schedule = models.InjectionSchedule.objects.get(pk=pk)
+        except models.InjectionSchedule.DoesNotExist:
+            return Response({'message': 'Schedule not found'}, status=404)
+
+        serializer = self.serializer_class(schedule, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
     def destroy(self, request, pk=None):
         try:
             schedule = models.InjectionSchedule.objects.get(pk=pk)
@@ -568,9 +581,35 @@ class ChatMessageViewSet(viewsets.ViewSet):
                 'timestamp': int(instance.timestamp.timestamp() * 1000)  # mili giây
             })
 
+from django.db.models import Count
 
 
+class StatsAPIView(APIView):
+    def get(self, request):
+        total_vaccinated = VaccinationRecord.objects.values('user').distinct().count()
 
+        total_appointments = Appointment.objects.count()
+
+        completed_appointments = Appointment.objects.filter(is_inoculated=True).count()
+
+        completion_rate = (completed_appointments / total_appointments) if total_appointments > 0 else 0
+
+        popular_vaccines_qs = VaccinationRecord.objects.values('vaccine__name') \
+                                  .annotate(count=Count('id')) \
+                                  .order_by('-count')[:3]  # Lấy top 3
+
+        popular_vaccines = [
+            {"name": item['vaccine__name'], "count": item['count']}
+            for item in popular_vaccines_qs
+        ]
+
+        data = {
+            "total_vaccinated": total_vaccinated,
+            "completion_rate": round(completion_rate * 100, 2),
+            "popular_vaccines": popular_vaccines,
+        }
+
+        return Response(data)
 
 
 
