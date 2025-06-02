@@ -3,6 +3,8 @@ import uuid
 from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import BaseUserManager
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone

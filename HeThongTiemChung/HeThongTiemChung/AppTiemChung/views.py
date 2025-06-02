@@ -152,9 +152,16 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
 
 
     @action(methods=['get'], detail=False)
-    def history(self, request):
-        appointments = model.Appointment.objects.all()
+    def all(self, request):
+        appointments = models.Appointment.objects.all()
         serializer = serializers.AppointmentSerializer(appointments, many=True)
+        return Response(serializer.data)
+
+    @action(methods=['get'], detail=False)
+    def history(self, request):
+        today = timezone.now().date()
+        past_appointments = self.get_queryset().filter(schedule__date__lt=today)
+        serializer = self.serializer_class(past_appointments, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['patch'], url_path='toggle-reminder')
@@ -193,11 +200,35 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
             )
         return Response({'message': f'Appointment confirmation updated to {confirm_value}.'})
 
-
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
     parser_classes = [MultiPartParser]
+    
+    @action(detail=True, methods=['patch'], url_path='mark-inoculated')
+    def mark_inoculated(self, request, pk=None):
+        appointment = self.get_queryset().filter(pk=pk).first()
+        if not appointment:
+            return Response({'detail': 'Appointment not found.'}, status=404)
+
+        inoculated_value = request.data.get('is_inoculated')
+        if inoculated_value is None:
+            return Response({'detail': 'Missing is_inoculated field.'}, status=400)
+
+        appointment.is_inoculated = inoculated_value
+
+        appointment.save()
+        return Response({'message': f'Appointment inoculated status updated to {inoculated_value}.'})
+
+    @action(methods=['get'],url_path='current-user/history', detail=False, permission_classes=[permissions.IsAuthenticated])
+    def history(self, request):
+        """
+        Lấy lịch sử cuộc hẹn của người dùng hiện tại
+        """
+        user = request.user
+        user_appointments = model.Appointment.objects.filter(user=user)
+        serialized = serializers.AppointmentSerializer(user_appointments, many=True)
+        return Response(serialized.data)
 
     def get_permissions(self):
         if self.action in ['current_user']:
@@ -282,11 +313,23 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
     serializer_class = serializers.VaccinationRecordSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    @action(detail=False, methods=['get'], url_path='history')
-    def vaccination_history(self, request):
-        records = models.VaccinationRecord.objects.filter(user=request.user).select_related('vaccine', 'site')
-        data = serializers.VaccinationRecordSerializer(records, many=True).data
-        return Response(data)
+    def get_queryset(self):
+        return models.VaccinationRecord.objects.all()
+
+    @action(detail=False, methods=['get'])
+    def history(self, request):
+        """
+        Nếu là staff xem tất cả, còn user xem riêng mình.
+        """
+        if request.user.is_staff:
+            # Staff xem tất cả bản ghi
+            records = self.get_queryset()
+        else:
+            # User thường chỉ xem bản ghi của mình
+            records = self.get_queryset().filter(user=request.user)
+
+        serializer = self.serializer_class(records, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['get'], url_path='certificate')
     def download_single_certificate(self, request, pk=None):
@@ -358,17 +401,13 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['patch'], url_path='add-health-note')
     def add_health_note(self, request, pk=None):
-        """
-        API để thêm hoặc cập nhật health note vào VaccinationRecord.
-        """
+        if not request.user.is_staff:
+            return Response({'message': 'Permission denied, only staff can add health note.'},
+                            status=status.HTTP_403_FORBIDDEN)
         try:
             record = models.VaccinationRecord.objects.get(pk=pk, user=request.user)
         except models.VaccinationRecord.DoesNotExist:
             return Response({'message': 'Vaccination record not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        # Kiểm tra xem người dùng có quyền truy cập bản ghi này không
-        if record.user != request.user:
-            return Response({'message': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
 
         # Lấy health note từ request
         health_note = request.data.get('health_note')
