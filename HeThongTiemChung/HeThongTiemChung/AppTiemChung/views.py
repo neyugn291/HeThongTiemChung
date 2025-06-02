@@ -131,6 +131,20 @@ class AppointmentViewSet(viewsets.ViewSet):
         appointment.delete()
         return Response({'message': 'Appointment deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=True, methods=['patch'], url_path='toggle-reminder')
+    def toggle_reminder(self, request, pk=None):
+        appointment = self.get_queryset().filter(pk=pk).first()
+        if not appointment:
+            return Response({'detail': 'Appointment not found.'}, status=404)
+
+        reminder_value = request.data.get('reminder_enabled')
+        if reminder_value is None:
+            return Response({'detail': 'Missing reminder_enabled field.'}, status=400)
+
+        appointment.reminder_enabled = reminder_value
+        appointment.save()
+        return Response({'message': f'Reminder status updated to {reminder_value}.'})
+
 
 class AppointmentAdminViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
@@ -164,19 +178,7 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         serializer = self.serializer_class(past_appointments, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['patch'], url_path='toggle-reminder')
-    def toggle_reminder(self, request, pk=None):
-        appointment = self.get_queryset().filter(pk=pk).first()
-        if not appointment:
-            return Response({'detail': 'Appointment not found.'}, status=404)
 
-        reminder_value = request.data.get('reminder_enabled')
-        if reminder_value is None:
-            return Response({'detail': 'Missing reminder_enabled field.'}, status=400)
-
-        appointment.reminder_enabled = reminder_value
-        appointment.save()
-        return Response({'message': f'Reminder status updated to {reminder_value}.'})
 
     @action(detail=True, methods=['patch'], url_path='mark-confirm')
     def mark_confirm(self, request, pk=None):
@@ -238,14 +240,16 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return [AllowAny()]
 
     def list(self, request):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
+        users = models.User.objects.all()
+        serializer = serializers.UserSerializer(users, many=True)
+
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
+            user = models.User.objects.get(pk=pk)
+        except model.User.DoesNotExist:
+
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         serializer = UserSerializer(user)
         return Response(serializer.data)
@@ -259,8 +263,10 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
     def update(self, request, pk=None):
         try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
+
+            user = models.User.objects.get(pk=pk)
+        except model.User.DoesNotExist:
+
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
@@ -273,8 +279,10 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
     def destroy(self, request, pk=None):
         try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
+
+            user = models.User.objects.get(pk=pk)
+        except model.User.DoesNotExist:
+
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
