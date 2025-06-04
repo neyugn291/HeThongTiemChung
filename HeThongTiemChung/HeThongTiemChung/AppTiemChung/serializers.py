@@ -137,23 +137,25 @@ class VaccinationRecordSerializer(ModelSerializer):
     site_name = serializers.CharField(source='site.name', read_only=True)
     site_address = serializers.CharField(source='site.address', read_only=True)
     vaccine_type_name = serializers.CharField(source='vaccine.vaccine_type', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
         model = VaccinationRecord
-        fields = [
-            'id',
-            'vaccine',
-            'vaccine_name',
-            'dose_number',
-            'injection_date',
-            'site',
-            'site_name',
-            'site_address',
-            'created_date',
-            'health_note',
-            'vaccine_type_name',
-        ]
-        # fields = '__all__'
+        # fields = [
+        #     'id',
+        #     'vaccine',
+        #     'vaccine_name',
+        #     'dose_number',
+        #     'injection_date',
+        #     'site',
+        #     'site_name',
+        #     'site_address',
+        #     'created_date',
+        #     'health_note',
+        #     'vaccine_type_name',
+        #     'username',
+        # ]
+        fields = '__all__'
 
 
 class AppointmentSerializer(ModelSerializer):
@@ -163,6 +165,7 @@ class AppointmentSerializer(ModelSerializer):
         source='schedule',
         write_only=True
     )
+    user_name = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
         model = Appointment
