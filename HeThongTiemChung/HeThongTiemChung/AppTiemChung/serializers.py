@@ -1,14 +1,18 @@
 import re
 from datetime import date, datetime
+
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
-from .models import Vaccine,VaccineType , User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite, ChatMessage
+from .models import Vaccine, VaccineType, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite, \
+    ChatMessage
+
 
 class VaccineTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = VaccineType
         fields = '__all__'
+
 
 class VaccineSerializer(ModelSerializer):
     vaccine_type_name = serializers.SerializerMethodField()
@@ -36,18 +40,18 @@ class VaccineSerializer(ModelSerializer):
     def get_vaccine_type_name(self, obj):
         return obj.vaccine_type.name if obj.vaccine_type else None
 
+
 class InjectionScheduleSerializer(serializers.ModelSerializer):
     vaccine_name = serializers.SerializerMethodField()
     vaccine_type_name = serializers.SerializerMethodField()
     site_name = serializers.SerializerMethodField()
-
 
     class Meta:
         model = InjectionSchedule
         fields = [
             'id', 'active', 'created_date', 'updated_date',
             'date', 'slot_count', 'vaccine', 'site',
-            'vaccine_name','vaccine_type_name' , 'site_name'
+            'vaccine_name', 'vaccine_type_name', 'site_name'
         ]
 
     def get_vaccine_name(self, obj):
@@ -91,7 +95,9 @@ class UserSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError("Ngày sinh không thể ở tương lai.")
                 if birth_date.year < 1900:
                     raise serializers.ValidationError("Năm sinh phải lớn hơn hoặc bằng 1900.")
-                days_in_month = (date(birth_date.year, birth_date.month + 1, 1) - date(birth_date.year, birth_date.month, 1)).days
+                days_in_month = (
+                        date(birth_date.year, birth_date.month + 1, 1) - date(birth_date.year, birth_date.month,
+                                                                              1)).days
                 if birth_date.day > days_in_month:
                     raise serializers.ValidationError(
                         f"Ngày không hợp lệ. Tháng {birth_date.month} năm {birth_date.year} chỉ có {days_in_month} ngày."
@@ -169,6 +175,7 @@ class AppointmentSerializer(ModelSerializer):
         fields = '__all__'
         read_only_fields = ('created_at', 'user')
 
+
 class InjectionScheduleSerializer(serializers.ModelSerializer):
     vaccine_name = serializers.SerializerMethodField()
     vaccine_type_name = serializers.SerializerMethodField()
@@ -179,7 +186,7 @@ class InjectionScheduleSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'active', 'created_date', 'updated_date',
             'date', 'slot_count', 'vaccine', 'site',
-            'vaccine_name','vaccine_type_name' , 'site_name'
+            'vaccine_name', 'vaccine_type_name', 'site_name'
         ]
 
     def get_vaccine_name(self, obj):
@@ -191,13 +198,16 @@ class InjectionScheduleSerializer(serializers.ModelSerializer):
     def get_site_name(self, obj):
         return obj.site.name if obj.site else None
 
+
 class InjectionSiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = InjectionSite
         fields = ['id', 'name', 'address', 'phone']
 
+
 class ChatMessageSerializer(serializers.ModelSerializer):
+    sender = serializers.StringRelatedField(allow_null=True)  # Cho phép null cho AI
+
     class Meta:
         model = ChatMessage
-        fields = ['id', 'sender', 'text', 'timestamp']
-
+        fields = ['id', 'sender', 'text', 'timestamp', 'is_user']

@@ -89,7 +89,7 @@ const Home = ({ navigation, route }) => {
   );
 
   const handleOpenAI = () => {
-    console.log("Mở AI - Chức năng sẽ được tích hợp sau");
+    navigation.navigate("ChatScreen");
   };
 
   return (

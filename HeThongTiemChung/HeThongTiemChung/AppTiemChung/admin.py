@@ -1,3 +1,5 @@
+import json
+
 from AppTiemChung import dao
 from ckeditor_uploader.widgets \
     import CKEditorUploadingWidget
@@ -7,7 +9,6 @@ from django.contrib.auth.admin import UserAdmin
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils.html import mark_safe
-import json
 
 from .models import Vaccine, VaccineType, User, InjectionSite, InjectionSchedule, VaccinationRecord, Appointment
 
