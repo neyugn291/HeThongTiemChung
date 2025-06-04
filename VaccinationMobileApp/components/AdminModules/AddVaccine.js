@@ -67,7 +67,7 @@ const AddVaccine = ({ navigation }) => {
   const months = Array.from({ length: 12 }, (_, i) =>
     (i + 1).toString().padStart(2, "0")
   );
-  const currentYear = new Date().getFullYear();
+  const currentYear = new Date("2025-06-04T15:52:00+07:00").getFullYear(); // Cập nhật thời gian hiện tại
   const years = Array.from({ length: currentYear - 1900 + 1 }, (_, i) =>
     (currentYear - i).toString()
   );
@@ -144,7 +144,7 @@ const AddVaccine = ({ navigation }) => {
       return { isValid: false, error: "Ngày, tháng, năm không hợp lệ." };
     }
 
-    const today = new Date();
+    const today = new Date("2025-06-04T15:52:00+07:00"); // Cập nhật thời gian hiện tại
     if (yearNum > today.getFullYear()) {
       return { isValid: false, error: "Năm không thể ở tương lai." };
     }
@@ -164,7 +164,8 @@ const AddVaccine = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.vaccine_type) {
+    console.log("Form Data on Submit:", JSON.stringify(formData, null, 2)); // Log giá trị formData khi submit
+    if (!formData.name.trim() || !formData.vaccine_type) {
       Alert.alert("Lỗi", "Tên vaccine và loại vaccine là bắt buộc.");
       return;
     }
@@ -293,12 +294,20 @@ const AddVaccine = ({ navigation }) => {
             {formData.vaccine_type && (
               <TouchableOpacity
                 style={styles.clearButton}
-                onPress={() => setFormData({ ...formData, vaccine_type: "" })}
+                onPress={() => {
+                  setFormData({ ...formData, vaccine_type: "" });
+                  Alert.alert("Cảnh báo", "Loại vaccine là bắt buộc. Vui lòng chọn lại.");
+                }}
               >
                 <MaterialCommunityIcons name="close" size={20} color="#021b42" />
               </TouchableOpacity>
             )}
           </TouchableOpacity>
+          {vaccineTypes.length === 0 && (
+            <Text style={styles.warningText}>
+              Không có loại vaccine nào. Vui lòng thêm loại vaccine trước.
+            </Text>
+          )}
 
           <Text style={styles.label}>Nhà sản xuất</Text>
           <TextInput
@@ -337,9 +346,8 @@ const AddVaccine = ({ navigation }) => {
             style={styles.input}
             value={formData.age_group}
             onChangeText={(text) =>
-              setFormData({ ...formData, age_group: text })
-            }
-            placeholder="Ví dụ: 12+"
+            setFormData({ ...formData, age_group: text })}
+          placeholder="Ví dụ: 12"
           />
 
           <Text style={styles.label}>Mô tả</Text>
@@ -347,8 +355,7 @@ const AddVaccine = ({ navigation }) => {
             style={[styles.input, { height: 100 }]}
             value={formData.description}
             onChangeText={(text) =>
-              setFormData({ ...formData, description: text })
-            }
+              setFormData({ ...formData, description: text })}
             placeholder="Mô tả chi tiết, lưu ý về vaccine"
             multiline
           />
@@ -399,10 +406,9 @@ const AddVaccine = ({ navigation }) => {
             <Switch
               value={formData.active}
               onValueChange={(value) =>
-                setFormData({ ...formData, active: value })
-              }
+                setFormData({ ...formData, active: value })}
               trackColor={{ false: "#767577", true: "#0c5776" }}
-              thumbColor={formData.active ? "#f4f3f4" : "#f4f3f4"}
+              thumbColor={formData.active ? "#f4f3f4" : "#f4f0f0"}
             />
           </View>
 
@@ -727,6 +733,13 @@ const styles = StyleSheet.create({
     color: "#021b42",
     textAlign: "center",
     padding: 12,
+  },
+  warningText: {
+    fontSize: 14,
+    color: "#f08486",
+    marginTop: -10,
+    marginBottom: 16,
+    marginLeft: 5,
   },
 });
 

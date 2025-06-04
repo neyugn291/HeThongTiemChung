@@ -26,7 +26,7 @@ const VaccineManagement = ({ navigation, route }) => {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const itemsPerPage = 10;
+  const itemsPerPage = 4;
 
   useEffect(() => {
     fetchVaccineTypes();

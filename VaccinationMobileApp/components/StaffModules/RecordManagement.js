@@ -18,10 +18,13 @@ import { authApis, endpoints } from "../../configs/Apis";
 const RecordManagement = ({ navigation }) => {
   const [appointments, setAppointments] = useState([]);
   const [filteredAppointments, setFilteredAppointments] = useState([]);
+  const [displayedAppointments, setDisplayedAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
 
-  const currentDate = new Date("2025-06-04T01:35:00+07:00"); // Thời gian hiện tại: 01:35 AM +07, 04/06/2025
+  const currentDate = new Date("2025-06-04T15:22:00+07:00"); // Thời gian hiện tại: 03:22 PM +07, 04/06/2025
 
   useEffect(() => {
     fetchAppointments();
@@ -53,6 +56,8 @@ const RecordManagement = ({ navigation }) => {
 
       setAppointments(response.data);
       setFilteredAppointments(response.data);
+      setDisplayedAppointments(response.data.slice(0, pageSize)); // Hiển thị trang đầu tiên
+      setPage(1);
     } catch (error) {
       console.error("Error fetching appointments:", error.message, error.response?.data, error.response?.status);
       let errorMessage = `Không thể tải danh sách cuộc hẹn. Chi tiết: ${error.message}`;
@@ -72,13 +77,28 @@ const RecordManagement = ({ navigation }) => {
     if (text) {
       const filtered = appointments.filter((item) =>
         item.id?.toString().includes(text) ||
-        (item.user?.first_name || "").toLowerCase().includes(text.toLowerCase()) ||
-        (item.user?.last_name || "").toLowerCase().includes(text.toLowerCase())
+        (item.user_name || "").toLowerCase().includes(text.toLowerCase())
       );
       setFilteredAppointments(filtered);
+      setDisplayedAppointments(filtered.slice(0, pageSize)); // Hiển thị trang đầu tiên sau tìm kiếm
+      setPage(1);
     } else {
       setFilteredAppointments(appointments);
+      setDisplayedAppointments(appointments.slice(0, pageSize)); // Hiển thị trang đầu tiên khi xóa tìm kiếm
+      setPage(1);
     }
+  };
+
+  const loadMoreAppointments = () => {
+    if (displayedAppointments.length >= filteredAppointments.length) return;
+
+    const nextPage = page + 1;
+    const newAppointments = filteredAppointments.slice(0, nextPage * pageSize);
+    setDisplayedAppointments(newAppointments);
+    setPage(nextPage);
+
+    console.log("loadMoreAppointments - New page:", nextPage);
+    console.log("loadMoreAppointments - New displayed appointments:", newAppointments.length);
   };
 
   const toggleStatus = async (appointmentId, field, currentValue) => {
@@ -121,6 +141,11 @@ const RecordManagement = ({ navigation }) => {
                   item.id === appointmentId ? { ...item, [field]: !currentValue } : item
                 )
               );
+              setDisplayedAppointments((prev) =>
+                prev.map((item) =>
+                  item.id === appointmentId ? { ...item, [field]: !currentValue } : item
+                )
+              );
               Alert.alert("Thành công", `Đã cập nhật trạng thái ${field === "is_confirmed" ? "xác nhận" : "hoàn thành"}!`);
             } catch (error) {
               console.error(`Error updating ${field}:`, error.response?.data || error.message);
@@ -150,7 +175,7 @@ const RecordManagement = ({ navigation }) => {
             ID: {item.id}
           </Text>
           <Text style={styles.itemText}>
-            Tên người tiêm: {item.user?.first_name || "Không xác định"} {item.user?.last_name || ""}
+            Tài khoản người tiêm: {item?.user_name || "Không xác định"}
           </Text>
           <Text style={styles.itemText}>
             Ngày: {appointmentDate ? new Date(appointmentDate).toLocaleDateString("vi-VN") : "Không xác định"}
@@ -183,6 +208,15 @@ const RecordManagement = ({ navigation }) => {
     );
   };
 
+  const renderFooter = () => {
+    if (displayedAppointments.length >= filteredAppointments.length) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#0c5776" />
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
@@ -198,7 +232,7 @@ const RecordManagement = ({ navigation }) => {
         <MaterialCommunityIcons name="magnify" size={20} color="#021b42" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Nhập ID hồ sơ hoặc tên người tiêm"
+          placeholder="Nhập ID hồ sơ hoặc tên người dùng"
           value={searchQuery}
           onChangeText={handleSearch}
           autoCapitalize="none"
@@ -209,13 +243,16 @@ const RecordManagement = ({ navigation }) => {
         <ActivityIndicator size="large" color="#0c5776" style={styles.loader} />
       ) : (
         <FlatList
-          data={filteredAppointments}
+          data={displayedAppointments}
           renderItem={renderItem}
           keyExtractor={(item) => item.id?.toString()}
           ListEmptyComponent={
             <Text style={styles.emptyText}>Không có cuộc hẹn nào.</Text>
           }
           contentContainerStyle={styles.listContainer}
+          onEndReached={loadMoreAppointments}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       )}
     </View>
@@ -279,6 +316,7 @@ const styles = StyleSheet.create({
   toggleText: { fontSize: 16, color: "#021b42", marginRight: 8 },
   emptyText: { fontSize: 16, color: "#021b42", textAlign: "center", marginTop: 20 },
   loader: { marginVertical: 20 },
+  footerLoader: { paddingVertical: 20, alignItems: "center" },
 });
 
 export default RecordManagement;

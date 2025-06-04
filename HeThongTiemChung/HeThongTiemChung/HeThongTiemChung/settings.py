@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.11',
+ALLOWED_HOSTS = ['192.168.1.7',
                  '127.0.0.1']  # Runserver IP Lan máy tính + port
 
 # Application definition
@@ -119,7 +119,7 @@ DATABASES = {
 }
 
 INTERNAL_IPS = [
-    '192.168.1.11',  # Runserver IP Lan máy tính + port
+    '192.168.1.7',  # Runserver IP Lan máy tính + port
     '127.0.0.1'
 ]
 
