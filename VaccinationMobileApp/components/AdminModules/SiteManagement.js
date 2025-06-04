@@ -17,12 +17,15 @@ import { authApis, endpoints } from "../../configs/Apis";
 
 const SiteManagement = ({ navigation }) => {
   const [sites, setSites] = useState([]);
+  const [displayedSites, setDisplayedSites] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [newSite, setNewSite] = useState({ name: "", address: "", phone: "" });
   const [editSiteId, setEditSiteId] = useState(null);
   const [editSite, setEditSite] = useState({ name: "", address: "", phone: "" });
+  const [page, setPage] = useState(1);
+  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
 
   useEffect(() => {
     fetchSites();
@@ -40,12 +43,26 @@ const SiteManagement = ({ navigation }) => {
         a.name.localeCompare(b.name)
       );
       setSites(sortedSites);
+      setDisplayedSites(sortedSites.slice(0, pageSize)); // Hiển thị trang đầu tiên
+      setPage(1);
     } catch (error) {
       console.error("Error details:", error.response?.data || error.message); // Log
       Alert.alert("Lỗi", "Không thể tải danh sách địa điểm.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadMoreSites = () => {
+    if (displayedSites.length >= sites.length) return;
+
+    const nextPage = page + 1;
+    const newSites = sites.slice(0, nextPage * pageSize);
+    setDisplayedSites(newSites);
+    setPage(nextPage);
+
+    console.log("loadMoreSites - New page:", nextPage);
+    console.log("loadMoreSites - New displayed sites:", newSites.length);
   };
 
   // Thêm địa điểm
@@ -166,6 +183,15 @@ const SiteManagement = ({ navigation }) => {
     </View>
   );
 
+  const renderFooter = () => {
+    if (displayedSites.length >= sites.length) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#0c5776" />
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar
@@ -195,13 +221,16 @@ const SiteManagement = ({ navigation }) => {
             <Text style={styles.addButtonText}>Thêm Địa Điểm</Text>
           </TouchableOpacity>
           <FlatList
-            data={sites}
+            data={displayedSites}
             renderItem={renderSite}
             keyExtractor={(item) => item.id.toString()}
             ListEmptyComponent={
               <Text style={styles.emptyText}>Không có địa điểm nào.</Text>
             }
             contentContainerStyle={styles.listContainer}
+            onEndReached={loadMoreSites}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
           />
         </View>
       )}
@@ -395,6 +424,10 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 20,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: "center",
   },
   modalContainer: {
     flex: 1,

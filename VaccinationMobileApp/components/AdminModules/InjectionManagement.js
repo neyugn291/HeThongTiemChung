@@ -18,6 +18,7 @@ import { Switch } from "react-native";
 
 const InjectionManagement = ({ navigation }) => {
   const [schedules, setSchedules] = useState([]);
+  const [displayedSchedules, setDisplayedSchedules] = useState([]);
   const [vaccines, setVaccines] = useState([]);
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -39,10 +40,11 @@ const InjectionManagement = ({ navigation }) => {
     slot_count: "",
   });
   const [originalSchedule, setOriginalSchedule] = useState(null);
-
   const [currentSite, setCurrentSite] = useState({ id: null, name: "", address: "", phone: "" });
+  const [page, setPage] = useState(1);
+  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
 
-  const currentDate = new Date("2025-06-02T12:15:00+07:00"); // Cập nhật theo thời gian hiện tại: 12:15 PM +07, 02/06/2025
+  const currentDate = new Date("2025-06-04T15:33:00+07:00"); // Thời gian hiện tại: 03:33 PM +07, 04/06/2025
 
   useEffect(() => {
     fetchSchedules();
@@ -65,6 +67,8 @@ const InjectionManagement = ({ navigation }) => {
       console.log("Schedules API response:", JSON.stringify(response.data, null, 2));
       const sortedSchedules = response.data.sort((a, b) => new Date(a.date) - new Date(b.date));
       setSchedules(sortedSchedules);
+      setDisplayedSchedules(sortedSchedules.slice(0, pageSize)); // Hiển thị trang đầu tiên
+      setPage(1);
     } catch (error) {
       console.error("Error fetching schedules:", error.message || error);
       Alert.alert("Lỗi", "Không thể tải danh sách đợt tiêm. Vui lòng kiểm tra kết nối hoặc cấu hình API.");
@@ -105,12 +109,23 @@ const InjectionManagement = ({ navigation }) => {
     }
   };
 
+  const loadMoreSchedules = () => {
+    if (displayedSchedules.length >= schedules.length) return;
+
+    const nextPage = page + 1;
+    const newSchedules = schedules.slice(0, nextPage * pageSize);
+    setDisplayedSchedules(newSchedules);
+    setPage(nextPage);
+
+    console.log("loadMoreSchedules - New page:", nextPage);
+    console.log("loadMoreSchedules - New displayed schedules:", newSchedules.length);
+  };
+
   const openModal = (schedule = null) => {
     if (schedule) {
       setIsEditing(true);
       console.log("Schedule data on edit:", JSON.stringify(schedule, null, 2));
 
-      // Giữ nguyên giá trị từ API, không áp dụng parseInt ngay
       const scheduleData = {
         id: schedule.id,
         vaccine_id: schedule.vaccine_id,
@@ -123,7 +138,7 @@ const InjectionManagement = ({ navigation }) => {
       };
 
       setCurrentSchedule(scheduleData);
-      setOriginalSchedule(schedule); // Lưu dữ liệu gốc trực tiếp từ API
+      setOriginalSchedule(schedule);
     } else {
       setIsEditing(false);
       const newSchedule = {
@@ -208,14 +223,13 @@ const InjectionManagement = ({ navigation }) => {
     let finalSiteId = currentSchedule.site_id;
 
     if (isEditing) {
-      // Nếu không thay đổi dữ liệu, sử dụng trực tiếp từ originalSchedule (dữ liệu gốc từ API)
       if (
         originalSchedule &&
         currentSchedule.vaccine_id === originalSchedule.vaccine_id &&
         currentSchedule.vaccine_name === originalSchedule.vaccine_name &&
         currentSchedule.vaccine_type_name === originalSchedule.vaccine_type_name
       ) {
-        finalVaccineId = originalSchedule.vaccine_id; // Giữ nguyên giá trị từ API
+        finalVaccineId = originalSchedule.vaccine_id;
       } else if (!currentSchedule.vaccine_id || isNaN(parseInt(currentSchedule.vaccine_id))) {
         Alert.alert("Lỗi", "Vaccine không hợp lệ. Vui lòng chọn lại vaccine.");
         return;
@@ -226,7 +240,7 @@ const InjectionManagement = ({ navigation }) => {
         currentSchedule.site_id === originalSchedule.site_id &&
         currentSchedule.site_name === originalSchedule.site_name
       ) {
-        finalSiteId = originalSchedule.site_id; // Giữ nguyên giá trị từ API
+        finalSiteId = originalSchedule.site_id;
       } else if (!currentSchedule.site_id || isNaN(parseInt(currentSchedule.site_id))) {
         Alert.alert("Lỗi", "Địa điểm không hợp lệ. Vui lòng chọn lại địa điểm.");
         return;
@@ -239,7 +253,7 @@ const InjectionManagement = ({ navigation }) => {
 
       const scheduleData = {
         vaccine: finalVaccineId,
-        date: currentSchedule.date || originalSchedule?.date, // Sử dụng date gốc nếu không thay đổi
+        date: currentSchedule.date || originalSchedule?.date,
         site: finalSiteId,
         slot_count: parseInt(currentSchedule.slot_count) || parseInt(originalSchedule?.slot_count) || 0,
       };
@@ -449,6 +463,15 @@ const InjectionManagement = ({ navigation }) => {
     ? new Date(currentSchedule.date).toLocaleDateString("vi-VN")
     : "--/--/----";
 
+  const renderFooter = () => {
+    if (displayedSchedules.length >= schedules.length) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#0c5776" />
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
@@ -490,7 +513,7 @@ const InjectionManagement = ({ navigation }) => {
       ) : (
         <View style={styles.contentContainer}>
           <FlatList
-            data={schedules.filter((item) =>
+            data={displayedSchedules.filter((item) =>
               showPastSchedules ? new Date(item.date) < currentDate : new Date(item.date) >= currentDate
             )}
             renderItem={renderItem}
@@ -501,6 +524,9 @@ const InjectionManagement = ({ navigation }) => {
               </Text>
             }
             contentContainerStyle={styles.listContainer}
+            onEndReached={loadMoreSchedules}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
           />
         </View>
       )}
@@ -738,6 +764,7 @@ const styles = StyleSheet.create({
   actionButtonText: { color: "#fff", fontSize: 14, fontWeight: "bold" },
   emptyText: { fontSize: 16, color: "#021b42", textAlign: "center", marginTop: 20 },
   loader: { marginVertical: 20 },
+  footerLoader: { paddingVertical: 20, alignItems: "center" },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
