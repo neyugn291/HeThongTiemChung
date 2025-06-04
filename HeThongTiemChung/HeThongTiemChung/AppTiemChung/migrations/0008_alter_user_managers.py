@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('AppTiemChung', '0007_alter_chatmessage_sender'),
     ]

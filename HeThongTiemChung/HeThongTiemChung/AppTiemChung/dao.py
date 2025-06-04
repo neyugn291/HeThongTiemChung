@@ -17,10 +17,7 @@ def load_vaccine(param={}):
     return q
 
 
-
 def count_vaccine_by_type():
     return VaccineType.objects.annotate(
         count=Count('vaccine', filter=Q(vaccine__status='Active'))
     ).values('id', 'name', 'count').order_by('-count')
-
-

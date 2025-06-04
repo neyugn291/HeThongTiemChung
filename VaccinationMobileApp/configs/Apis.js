@@ -11,14 +11,20 @@ export const endpoints = {
   injectionSites: "sites/",
   allSchedules: "schedules/",
   upcomingSchedules: "schedules/upcoming_schedules/",
-  appointment: (id) => (id ? `appointment/${id}/` : "appointment/"),
+  allAppointment: "appointments/all/",
+  confirmAppointment: (id) => `appointments/${id}/mark-confirm/`,
+  inoculateAppointment: (id) => `appointments/${id}/mark-inoculated/`,
   vaccines: (id) => (id ? `vaccines/${id}/` : "vaccines/"),
   vaccineTypes: (id) => (id ? `vaccine-types/${id}/` : "vaccine-types/"),
   schedules: (id) => (id ? `schedules/${id}/` : "schedules/"),
   sites: (id) => (id ? `sites/${id}/` : "sites/"),
-  toggleReminder: (id) => `/appointments/${id}/toggle-reminder/`,
-  records: (id) => `records/${id}/add-health-note/`,
+  toggleReminder: (id) => `/appointment/${id}/toggle-reminder/`,
+  records: (recordId) => `records/${recordId}/add-health-note/`,
   user: (id) => (id ? `users/${id}/` : "users/"),
+  chatMessages: "chat-messages/",
+  checkQuestion: "check-question/",
+  aiChat: "ai-chat/",
+  checkQuestion: "check-question/",
 };
 
 export const authApis = (token) => {

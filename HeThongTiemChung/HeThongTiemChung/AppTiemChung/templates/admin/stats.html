@@ -1,14 +1,19 @@
 {% extends 'admin/base_site.html' %}
 
 {% block content %}
-  <h1>Thống kê số lượng Vaccine theo loại</h1>
+<h1>Thống kê số lượng Vaccine theo loại</h1>
 
-  <canvas id="vaccineChart" width="600" height="400"></canvas>
+<canvas id="vaccineChart" width="600" height="400"></canvas>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
     // Dữ liệu truyền từ backend qua biến stats
-    const vaccineStats = {{ stats|safe }};
+    const vaccineStats = {
+    {
+        stats | safe
+    }
+    }
+    ;
 
     const labels = vaccineStats.map(item => item.name);   // 'name' chứ không phải 'vaccine_type'
     const counts = vaccineStats.map(item => item.count);
@@ -16,25 +21,25 @@
     const ctx = document.getElementById('vaccineChart').getContext('2d');
 
     const chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Số lượng Vaccine',
-          data: counts,
-          backgroundColor: 'rgba(54, 162, 235, 0.7)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true,
-            precision: 0
-          }
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Số lượng Vaccine',
+                data: counts,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    precision: 0
+                }
+            }
         }
-      }
     });
-  </script>
+</script>
 {% endblock %}

@@ -19,8 +19,10 @@ const EditHealthNote = ({ navigation }) => {
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [saving, setSaving] = useState({});
+  const [notes, setNotes] = useState({}); // State để lưu ghi chú cho từng record
 
-  const currentDate = new Date("2025-06-02T18:52:00+07:00"); // Thời gian hiện tại: 06:52 PM +07, 02/06/2025
+  const currentDate = new Date("2025-06-04T02:33:00+07:00"); // Thời gian hiện tại: 02:33 AM +07, 04/06/2025
 
   useEffect(() => {
     fetchRecords();
@@ -32,19 +34,46 @@ const EditHealthNote = ({ navigation }) => {
       const token = await AsyncStorage.getItem("token");
       if (!token) throw new Error("Token không tồn tại.");
 
-      const response = await authApis(token).get(endpoints["recordSearch"]);
+      console.log("Token from AsyncStorage:", token.substring(0, 10) + "...");
+      const url = endpoints["recordSearch"];
+      console.log("Fetching records from:", url);
+
+      const response = await authApis(token).get(url);
+
+      if (response.status !== 200) {
+        throw new Error(`Server returned status ${response.status}: ${JSON.stringify(response.data)}`);
+      }
+
       console.log("Records API response:", JSON.stringify(response.data, null, 2));
 
-      // Giả định mỗi record có healthnote
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error("Dữ liệu trả về không phải là danh sách hoặc rỗng.");
+      }
+
       const recordsWithNotes = response.data.map((item) => ({
         ...item,
-        healthnote: item.healthnote || "Chưa có ghi chú", // Giá trị mặc định nếu không có
+        health_note: item.health_note || "",
       }));
       setRecords(recordsWithNotes);
       setFilteredRecords(recordsWithNotes);
+
+      // Khởi tạo notes từ health_note của các record
+      const initialNotes = recordsWithNotes.reduce((acc, item) => {
+        acc[item.id] = item.health_note || "";
+        return acc;
+      }, {});
+      setNotes(initialNotes);
     } catch (error) {
-      console.error("Error fetching records:", error.message);
-      Alert.alert("Lỗi", "Không thể tải danh sách hồ sơ. Vui lòng thử lại.");
+      console.error("Error fetching records:", error.message, error.response?.data, error.response?.status);
+      let errorMessage = `Không thể tải danh sách hồ sơ. Chi tiết: ${error.message}`;
+      if (error.message.includes("Network Error")) {
+        errorMessage = "Lỗi mạng. Vui lòng kiểm tra kết nối và đảm bảo server đang chạy.";
+      } else if (error.response?.status === 401) {
+        errorMessage = "Unauthorized: Token không hợp lệ. Vui lòng đăng nhập lại.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Forbidden: Bạn không có quyền truy cập.";
+      }
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -53,10 +82,11 @@ const EditHealthNote = ({ navigation }) => {
   const handleSearch = (text) => {
     setSearchQuery(text);
     if (text) {
-      const filtered = records.filter((item) =>
-        item.id.toString().includes(text) ||
-        (item.user?.first_name || "").toLowerCase().includes(text.toLowerCase()) ||
-        (item.user?.last_name || "").toLowerCase().includes(text.toLowerCase())
+      const filtered = records.filter(
+        (item) =>
+          item.id?.toString().includes(text) ||
+          (item.user?.first_name || "").toLowerCase().includes(text.toLowerCase()) ||
+          (item.user?.last_name || "").toLowerCase().includes(text.toLowerCase())
       );
       setFilteredRecords(filtered);
     } else {
@@ -65,43 +95,77 @@ const EditHealthNote = ({ navigation }) => {
   };
 
   const updateHealthNote = async (recordId, currentNote) => {
-    try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) throw new Error("Token không tồn tại.");
-
-      if (!currentNote.trim()) {
-        Alert.alert("Lỗi", "Vui lòng nhập hoặc giữ ghi chú!");
-        return;
-      }
-
-      const endpoint = endpoints["records"](recordId);
-      console.log("Updating health note with endpoint:", endpoint);
-      const response = await authApis(token).patch(endpoint, { healthnote: currentNote });
-      console.log("Update health note response:", JSON.stringify(response.data, null, 2));
-
-      setRecords((prev) =>
-        prev.map((item) =>
-          item.id === recordId ? { ...item, healthnote: currentNote } : item
-        )
-      );
-      setFilteredRecords((prev) =>
-        prev.map((item) =>
-          item.id === recordId ? { ...item, healthnote: currentNote } : item
-        )
-      );
-      Alert.alert("Thành công", "Ghi chú đã được cập nhật!");
-    } catch (error) {
-      console.error("Error updating health note:", error.response?.data || error.message);
-      Alert.alert(
-        "Lỗi",
-        error.response?.data?.detail || "Không thể cập nhật ghi chú. Vui lòng thử lại."
-      );
+    if (!currentNote.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập hoặc giữ ghi chú!");
+      return;
     }
+
+    setSaving((prev) => ({ ...prev, [recordId]: true }));
+
+    Alert.alert("Xác nhận", "Bạn có muốn cập nhật ghi chú này?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Lưu",
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem("token");
+            if (!token) throw new Error("Token không tồn tại.");
+
+            const endpoint = endpoints.records(recordId);
+            console.log("Updating health note with endpoint:", endpoint);
+
+            // Kiểm tra thêm dữ liệu yêu cầu từ backend (nếu cần)
+            const payload = { health_note: currentNote };
+            // Nếu backend yêu cầu thêm thông tin (ví dụ: vaccination_id), thêm vào payload
+            // Ví dụ: const record = records.find((r) => r.id === recordId);
+            // if (record?.vaccination_id) payload.vaccination_id = record.vaccination_id;
+
+            const response = await authApis(token).patch(endpoint, payload);
+
+            if (response.status !== 200) {
+              throw new Error(`Server returned status ${response.status}: ${JSON.stringify(response.data)}`);
+            }
+
+            console.log("Update health note response:", JSON.stringify(response.data, null, 2));
+
+            setNotes((prev) => ({ ...prev, [recordId]: currentNote }));
+            setRecords((prev) =>
+              prev.map((item) =>
+                item.id === recordId ? { ...item, health_note: currentNote } : item
+              )
+            );
+            setFilteredRecords((prev) =>
+              prev.map((item) =>
+                item.id === recordId ? { ...item, health_note: currentNote } : item
+              )
+            );
+            Alert.alert("Thành công", "Ghi chú đã được cập nhật!");
+          } catch (error) {
+            console.error("Error updating health note:", error.response?.data || error.message);
+            let errorMessage = "Không thể cập nhật ghi chú. Vui lòng thử lại.";
+            if (error.message.includes("Network Error")) {
+              errorMessage = "Lỗi mạng. Vui lòng kiểm tra kết nối và đảm bảo server đang chạy.";
+            } else if (error.response?.status === 401) {
+              errorMessage = "Unauthorized: Token không hợp lệ. Vui lòng đăng nhập lại.";
+            } else if (error.response?.status === 403) {
+              errorMessage = "Forbidden: Bạn không có quyền cập nhật.";
+            } else if (error.response?.status === 404) {
+              errorMessage = error.response.data?.message || "Bản ghi không tồn tại.";
+            } else if (error.response?.status === 400) {
+              errorMessage = error.response.data?.message || "Dữ liệu không hợp lệ.";
+            }
+            Alert.alert("Lỗi", errorMessage);
+          } finally {
+            setSaving((prev) => ({ ...prev, [recordId]: false }));
+          }
+        },
+      },
+    ]);
   };
 
   const renderItem = ({ item }) => {
-    const [noteText, setNoteText] = useState(item.healthnote || "Chưa có ghi chú");
-    const recordDate = item.date || item.schedule?.date;
+    const noteText = notes[item.id] || "";
+    const recordDate = item.injection_date || item.schedule?.date;
 
     return (
       <View style={styles.itemCard}>
@@ -115,18 +179,26 @@ const EditHealthNote = ({ navigation }) => {
           <Text style={styles.itemText}>
             Ngày: {recordDate ? new Date(recordDate).toLocaleDateString("vi-VN") : "Không xác định"}
           </Text>
+          <Text style={styles.itemText}>
+            Vaccine: {item.vaccine_name || "Không xác định"}
+          </Text>
           <TextInput
             style={styles.noteInput}
-            placeholder="Nhập hoặc sửa ghi chú sức khỏe..."
+            placeholder={noteText ? "" : "Chưa có ghi chú"}
             value={noteText}
-            onChangeText={setNoteText}
+            onChangeText={(text) => setNotes((prev) => ({ ...prev, [item.id]: text }))}
             multiline
           />
           <TouchableOpacity
             style={styles.addNoteButton}
             onPress={() => updateHealthNote(item.id, noteText)}
+            disabled={saving[item.id]}
           >
-            <Text style={styles.addNoteText}>Lưu ghi chú</Text>
+            {saving[item.id] ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.addNoteText}>Lưu ghi chú</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -161,10 +233,8 @@ const EditHealthNote = ({ navigation }) => {
         <FlatList
           data={filteredRecords}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>Không có hồ sơ nào.</Text>
-          }
+          keyExtractor={(item) => item.id?.toString()}
+          ListEmptyComponent={<Text style={styles.emptyText}>Không có hồ sơ nào.</Text>}
           contentContainerStyle={styles.listContainer}
         />
       )}
@@ -239,6 +309,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     alignItems: "center",
+    marginTop: 8,
   },
   addNoteText: { color: "#fff", fontSize: 14, fontWeight: "bold" },
   emptyText: { fontSize: 16, color: "#021b42", textAlign: "center", marginTop: 20 },

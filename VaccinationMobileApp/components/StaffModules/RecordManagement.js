@@ -21,7 +21,7 @@ const RecordManagement = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const currentDate = new Date("2025-06-02T18:20:00+07:00"); // Thời gian hiện tại: 06:20 PM +07, 02/06/2025
+  const currentDate = new Date("2025-06-04T01:35:00+07:00"); // Thời gian hiện tại: 01:35 AM +07, 04/06/2025
 
   useEffect(() => {
     fetchAppointments();
@@ -33,14 +33,35 @@ const RecordManagement = ({ navigation }) => {
       const token = await AsyncStorage.getItem("token");
       if (!token) throw new Error("Token không tồn tại.");
 
-      const response = await authApis(token).get(endpoints["appointment"]());
+      console.log("Token from AsyncStorage:", token.substring(0, 10) + "...");
+
+      const endpoint = endpoints["allAppointment"];
+      if (!endpoint) throw new Error("Endpoint 'allAppointment' không được định nghĩa.");
+      console.log("Fetching appointments from endpoint:", endpoint);
+
+      const response = await authApis(token).get(endpoint);
+
+      if (response.status !== 200) {
+        throw new Error(`Server returned status ${response.status}: ${JSON.stringify(response.data)}`);
+      }
+
       console.log("Appointments API response:", JSON.stringify(response.data, null, 2));
+
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error("Dữ liệu trả về không phải là danh sách hoặc rỗng.");
+      }
 
       setAppointments(response.data);
       setFilteredAppointments(response.data);
     } catch (error) {
-      console.error("Error fetching appointments:", error.message);
-      Alert.alert("Lỗi", "Không thể tải danh sách hồ sơ. Vui lòng thử lại.");
+      console.error("Error fetching appointments:", error.message, error.response?.data, error.response?.status);
+      let errorMessage = `Không thể tải danh sách cuộc hẹn. Chi tiết: ${error.message}`;
+      if (error.response?.status === 401) {
+        errorMessage = "Unauthorized: Token không hợp lệ hoặc không có quyền staff. Vui lòng đăng nhập lại.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Forbidden: Bạn không có quyền truy cập với vai trò staff.";
+      }
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -50,7 +71,7 @@ const RecordManagement = ({ navigation }) => {
     setSearchQuery(text);
     if (text) {
       const filtered = appointments.filter((item) =>
-        item.id.toString().includes(text) ||
+        item.id?.toString().includes(text) ||
         (item.user?.first_name || "").toLowerCase().includes(text.toLowerCase()) ||
         (item.user?.last_name || "").toLowerCase().includes(text.toLowerCase())
       );
@@ -61,44 +82,62 @@ const RecordManagement = ({ navigation }) => {
   };
 
   const toggleStatus = async (appointmentId, field, currentValue) => {
-    try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) throw new Error("Token không tồn tại.");
+    Alert.alert(
+      "Xác nhận",
+      `Bạn có muốn ${currentValue ? "tắt" : "bật"} trạng thái ${field === "is_confirmed" ? "xác nhận" : "hoàn thành"}?`,
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xác nhận",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              if (!token) throw new Error("Token không tồn tại.");
 
-      console.log("Token used:", token.substring(0, 10) + "...");
-      const endpoint = endpoints["appointment"](appointmentId); // Sử dụng endpoint với ID
-      console.log("Updating status with endpoint:", endpoint);
-      const response = await authApis(token).patch(endpoint, {
-        [field]: !currentValue,
-      });
-      console.log(`${field} updated response:`, JSON.stringify(response.data, null, 2));
+              const endpoint =
+                field === "is_confirmed"
+                  ? endpoints.confirmAppointment(appointmentId)
+                  : endpoints.inoculateAppointment(appointmentId);
+              const body =
+                field === "is_confirmed"
+                  ? { is_confirmed: !currentValue }
+                  : { is_inoculated: !currentValue };
+              console.log(`Updating ${field} with endpoint:`, endpoint, "Body:", body);
 
-      setAppointments((prev) =>
-        prev.map((item) =>
-          item.id === appointmentId ? { ...item, [field]: !currentValue } : item
-        )
-      );
-      setFilteredAppointments((prev) =>
-        prev.map((item) =>
-          item.id === appointmentId ? { ...item, [field]: !currentValue } : item
-        )
-      );
-      Alert.alert("Thành công", `Đã cập nhật ${field === "is_confirmed" ? "xác nhận" : "hoàn thành"}!`);
-    } catch (error) {
-      console.error(`Error updating ${field}:`, error.response?.data || error.message);
-      Alert.alert(
-        "Lỗi",
-        error.response?.data?.detail || `Không thể cập nhật ${field === "is_confirmed" ? "xác nhận" : "hoàn thành"}.`
-      );
-    }
-  };
+              const response = await authApis(token).patch(endpoint, body);
+              if (response.status !== 200) {
+                throw new Error(`Server returned status ${response.status}: ${JSON.stringify(response.data)}`);
+              }
 
-  const addHealthNote = async (appointmentId) => {
-    // Placeholder: Thêm logic gọi API để thêm ghi chú
-    Alert.alert("Thêm ghi chú", "Chức năng đang được phát triển!");
-    console.log("Add health note for appointment ID:", appointmentId);
-    // Thêm endpoint khi backend cung cấp: const endpoint = endpoints["addHealthNote"](appointmentId);
-    // const response = await authApis(token).post(endpoint, { note: "Ghi chú mới" });
+              console.log(`${field} updated response:`, JSON.stringify(response.data, null, 2));
+
+              setAppointments((prev) =>
+                prev.map((item) =>
+                  item.id === appointmentId ? { ...item, [field]: !currentValue } : item
+                )
+              );
+              setFilteredAppointments((prev) =>
+                prev.map((item) =>
+                  item.id === appointmentId ? { ...item, [field]: !currentValue } : item
+                )
+              );
+              Alert.alert("Thành công", `Đã cập nhật trạng thái ${field === "is_confirmed" ? "xác nhận" : "hoàn thành"}!`);
+            } catch (error) {
+              console.error(`Error updating ${field}:`, error.response?.data || error.message);
+              let errorMessage = `Không thể cập nhật trạng thái ${field === "is_confirmed" ? "xác nhận" : "hoàn thành"}.`;
+              if (error.response?.status === 401) {
+                errorMessage = "Unauthorized: Token không hợp lệ. Vui lòng đăng nhập lại.";
+              } else if (error.response?.status === 403) {
+                errorMessage = "Forbidden: Bạn không có quyền cập nhật.";
+              } else if (error.response?.status === 404) {
+                errorMessage = "Appointment không tồn tại.";
+              }
+              Alert.alert("Lỗi", errorMessage);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderItem = ({ item }) => {
@@ -111,7 +150,7 @@ const RecordManagement = ({ navigation }) => {
             ID: {item.id}
           </Text>
           <Text style={styles.itemText}>
-            Tên: {item.user?.first_name || "Không xác định"} {item.user?.last_name || ""}
+            Tên người tiêm: {item.user?.first_name || "Không xác định"} {item.user?.last_name || ""}
           </Text>
           <Text style={styles.itemText}>
             Ngày: {appointmentDate ? new Date(appointmentDate).toLocaleDateString("vi-VN") : "Không xác định"}
@@ -139,12 +178,6 @@ const RecordManagement = ({ navigation }) => {
               />
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.addNoteButton}
-            onPress={() => addHealthNote(item.id)}
-          >
-            <Text style={styles.addNoteText}>Thêm ghi chú</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -157,7 +190,7 @@ const RecordManagement = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quản lý hồ sơ</Text>
+        <Text style={styles.headerTitle}>Quản lý cuộc hẹn</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -165,7 +198,7 @@ const RecordManagement = ({ navigation }) => {
         <MaterialCommunityIcons name="magnify" size={20} color="#021b42" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm theo ID hoặc tên..."
+          placeholder="Nhập ID hồ sơ hoặc tên người tiêm"
           value={searchQuery}
           onChangeText={handleSearch}
           autoCapitalize="none"
@@ -178,9 +211,9 @@ const RecordManagement = ({ navigation }) => {
         <FlatList
           data={filteredAppointments}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item.id?.toString()}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>Không có hồ sơ nào.</Text>
+            <Text style={styles.emptyText}>Không có cuộc hẹn nào.</Text>
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -228,7 +261,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#021b42",
   },
-  listContainer: { paddingBottom: 20 },
+  listContainer: { paddingBottom: 20, paddingHorizontal: 12 },
   itemCard: {
     borderRadius: 8,
     padding: 16,
@@ -244,14 +277,6 @@ const styles = StyleSheet.create({
   statusToggle: { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
   toggleRow: { flexDirection: "row", alignItems: "center" },
   toggleText: { fontSize: 16, color: "#021b42", marginRight: 8 },
-  addNoteButton: {
-    backgroundColor: "#0c5776",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  addNoteText: { color: "#fff", fontSize: 14, fontWeight: "bold" },
   emptyText: { fontSize: 16, color: "#021b42", textAlign: "center", marginTop: 20 },
   loader: { marginVertical: 20 },
 });
