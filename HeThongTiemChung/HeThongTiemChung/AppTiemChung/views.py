@@ -412,7 +412,7 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
             return Response({'message': 'Permission denied, only staff can add health note.'},
                             status=status.HTTP_403_FORBIDDEN)
         try:
-            record = models.VaccinationRecord.objects.get(pk=pk, user=request.user)
+            record = models.VaccinationRecord.objects.get(pk=pk)
         except models.VaccinationRecord.DoesNotExist:
             return Response({'message': 'Vaccination record not found'}, status=status.HTTP_404_NOT_FOUND)
 
