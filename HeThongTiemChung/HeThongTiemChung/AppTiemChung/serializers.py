@@ -64,7 +64,6 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', value):
             raise serializers.ValidationError("Email không hợp lệ.")
-        # Kiểm tra email trùng, nhưng loại trừ email của chính người dùng hiện tại
         if User.objects.filter(email=value).exclude(id=self.instance.id if self.instance else None).exists():
             raise serializers.ValidationError("Email này đã được sử dụng!")
         return value
@@ -82,13 +81,11 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_birth_date(self, value):
         if not value:
             return None
-
         try:
             if isinstance(value, str):
                 if not re.match(r'^\d{4}-\d{2}-\d{2}$', value):
                     raise serializers.ValidationError("Định dạng ngày sinh không hợp lệ (YYYY-MM-DD).")
                 birth_date = datetime.strptime(value, '%Y-%m-%d').date()
-                print("Validated birth_date:", birth_date)  # Debug
                 today = date.today()
                 if birth_date > today:
                     raise serializers.ValidationError("Ngày sinh không thể ở tương lai.")
@@ -114,15 +111,24 @@ class UserSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data['avatar'] = instance.avatar.url if instance.avatar else ''
+        # Đảm bảo các trường luôn có giá trị mặc định
+        data['username'] = data.get('username', 'Không xác định')
+        data['email'] = data.get('email', 'Không xác định')
+        data['first_name'] = data.get('first_name', '')
+        data['last_name'] = data.get('last_name', '')
+        data['citizen_id'] = data.get('citizen_id', '')
+        data['phone_number'] = data.get('phone_number', '')
+        data['birth_date'] = data.get('birth_date', '')
+        data['gender'] = data.get('gender', '')
         return data
 
     class Meta:
-        model = User
-        fields = ['username', 'email', 'password', 'avatar', 'is_superuser', 'is_staff', 'is_active',
+        model = User  # Hoặc CustomUser nếu có
+        fields = ['id', 'username', 'email', 'password', 'avatar', 'is_superuser', 'is_staff', 'is_active',
                   'first_name', 'last_name', 'citizen_id', 'phone_number', 'birth_date', 'gender']
         extra_kwargs = {'password': {'write_only': True},
-                        'first_name': {'required': False, 'allow_blank': False},
-                        'last_name': {'required': False, 'allow_blank': False},
+                        'first_name': {'required': False, 'allow_blank': True},
+                        'last_name': {'required': False, 'allow_blank': True},
                         'is_active': {'default': True}}
 
 
