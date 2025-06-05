@@ -28,6 +28,9 @@ import EditHealthNote from "./components/StaffModules/EditHealthNote";
 import AddAccount from "./components/AdminModules/AddAccount";
 import EditAccount from "./components/AdminModules/EditAccount";
 import ChatScreen from "./components/CitizenModules/ChatScreen";
+import Contact from "./components/CitizenModules/Contact";
+import StaffChatScreen from "./components/StaffModules/StaffChatScreen";
+import StaffChatDetail from "./components/StaffModules/StaffChatDetail";
 import StatScreen from "./components/User/StatScreen";
 
 // Reducer để quản lý trạng thái người dùng
@@ -77,6 +80,9 @@ const App = () => {
             <Stack.Screen name="AddAccount" component={AddAccount} />
             <Stack.Screen name="EditAccount" component={EditAccount} />
             <Stack.Screen name="ChatScreen" component={ChatScreen} />
+            <Stack.Screen name="Contact" component={Contact} />
+            <Stack.Screen name="StaffChatScreen" component={StaffChatScreen} />
+            <Stack.Screen name="StaffChatDetail" component={StaffChatDetail} />
             <Stack.Screen name="Stats" component={StatScreen}/> 
           </Stack.Navigator>
         </NavigationContainer>

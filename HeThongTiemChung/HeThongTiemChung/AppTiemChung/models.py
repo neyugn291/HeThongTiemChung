@@ -210,6 +210,7 @@ class Faq(models.Model):
             models.Index(fields=['question_keywords']),  # Tối ưu truy vấn theo từ khóa
         ]
 
+
 class UnansweredQuestion(models.Model):
     question = models.TextField()  # Câu hỏi không được trả lời
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # Người dùng
@@ -217,6 +218,7 @@ class UnansweredQuestion(models.Model):
 
     def __str__(self):
         return f"Unanswered: {self.question}"
+
 
 class QueryLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='query_logs')

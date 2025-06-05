@@ -67,6 +67,7 @@ const Home = ({ navigation, route }) => {
   const navItems = [
     { icon: "home", label: "Trang chủ", screen: "Home" },
     { icon: "bell-badge", label: "Nhắc lịch tiêm", screen: "Reminders" },
+    { icon: "message", label: "Liên hệ", screen: "Contact" },
     { icon: "account", label: "Tài khoản", screen: "Account" },
   ];
 

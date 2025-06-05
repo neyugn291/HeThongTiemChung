@@ -4,32 +4,29 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.http import HttpResponse, FileResponse
 from rest_framework import viewsets, generics, parsers, status
-from django.contrib.auth.decorators import login_required, user_passes_test
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
-import csv
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Vaccine, User, Appointment, VaccinationRecord
 from .serializers import UserSerializer
 from .permissions import IsAdminUser, IsStaffUser
 from AppTiemChung import models
 from AppTiemChung import serializers
-from django.shortcuts import render, redirect, get_object_or_404
 import io
 from reportlab.pdfgen import canvas
 from django.db.models import Count
-import firebase_admin
-from firebase_admin import credentials
 from django.utils import timezone
 import os
-from django.contrib import messages
-from django.core.paginator import Paginator
-from django.db.models import Q
 from django.core.cache import cache
 from pyvi import ViTokenizer
 from difflib import get_close_matches
-from .forms import FaqForm
+from django.db.models import Q
+import firebase_admin
+from firebase_admin import credentials, db
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 
 def index(request):
     return HttpResponse("Vaccination App")
@@ -479,19 +476,68 @@ class InjectionSiteViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.InjectionSiteSerializer
     permission_classes = [IsAdminUser]
 
-def chat_view(request):
-    return render(request, 'chat/chat.html', {
-        'username': request.user.username
-    })
-
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 key_path = os.path.join(base_dir, 'HeThongTiemChung', 'secure_keys', 'serviceAccountKey.json')
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate('secure_keys/serviceAccountKey.json')
+    cred = credentials.Certificate(key_path)
     firebase_admin.initialize_app(cred, {
         'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
     })
+
+@csrf_exempt
+@login_required
+def send_message(request):
+    if request.method == 'POST':
+        try:
+            data = request.POST
+            message_text = data.get('message')
+            user = request.user
+
+            # Lưu tin nhắn vào Firebase
+            ref = db.reference('chats').child(user.id).push()
+            ref.set({
+                'text': message_text,
+                'sender': user.username,
+                'timestamp': db.ServerValue.TIMESTAMP,
+                'is_user': True
+            })
+
+            # Gửi thông báo đến nhân viên (có thể cải tiến bằng Cloud Messaging)
+            staff_ref = db.reference('staff_chats')
+            staff_ref.push({
+                'user_id': user.id,
+                'user_name': user.username,
+                'last_message': message_text,
+                'timestamp': db.ServerValue.TIMESTAMP
+            })
+
+            return JsonResponse({'success': True, 'message': 'Tin nhắn đã được gửi'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'detail': str(e)})
+    return JsonResponse({'success': False, 'detail': 'Phương thức không hợp lệ'})
+
+@csrf_exempt
+@login_required
+def get_staff_chats(request):
+    if request.method == 'GET':
+        try:
+            staff_ref = db.reference('staff_chats').order_by_child('timestamp')
+            chats = staff_ref.get()
+            if chats:
+                chat_list = [
+                    {
+                        'user_id': key,
+                        'user_name': value['user_name'],
+                        'last_message': value['last_message'],
+                        'timestamp': value['timestamp']
+                    }
+                    for key, value in chats.items()
+                ]
+                return JsonResponse({'success': True, 'chats': chat_list})
+            return JsonResponse({'success': True, 'chats': []})
+        except Exception as e:
+            return JsonResponse({'success': False, 'detail': str(e)})
 
 # Danh sách các chức năng của ứng dụng và màn hình tương ứng
 APP_FUNCTIONS = {
@@ -501,7 +547,7 @@ APP_FUNCTIONS = {
         "message": "Để đặt lịch tiêm, bạn có thể sử dụng chức năng Đặt lịch hẹn."
     },
     "tra cứu lịch sử tiêm": {
-        "keywords": ["lịch sử tiêm", "lịch sử", "tiêm chủng"],
+        "keywords": ["lịch sử tiêm", "lịch sử", "lịch đã tiêm"],
         "screen": "RecordSearch",
         "message": "Để xem lịch sử tiêm, bạn có thể sử dụng chức năng Tra cứu lịch sử tiêm."
     },
@@ -521,12 +567,6 @@ APP_FUNCTIONS = {
         "message": "Để bật thông báo lịch tiêm qua email, bạn có thể sử dụng chức năng Nhắc lịch tiêm."
     }
 }
-
-
-# Hàm kiểm tra quyền admin
-def is_admin(user):
-    return user.is_authenticated and user.is_staff
-
 
 # Hàm hỗ trợ: Logic xử lý AI
 def generate_response(message):
@@ -606,7 +646,6 @@ def generate_response(message):
         print(f"Error in generate_response: {e}")
         return "Câu hỏi không hợp lệ. Vui lòng thử lại với câu hỏi khác."
 
-
 # ViewSet cho Chat Messages (giữ nguyên nhưng không sử dụng trong ai_chat_free_api)
 class ChatMessageViewSet(viewsets.ViewSet):
     """ViewSet xử lý tin nhắn chat"""
@@ -627,7 +666,6 @@ class ChatMessageViewSet(viewsets.ViewSet):
             serializer.save(sender=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 # API endpoint cho AI chat
 @api_view(['POST'])
@@ -716,113 +754,6 @@ def ai_chat_free_api(request):
             'success': False,
             'navigation': None
         }, status=status.HTTP_200_OK)
-
-
-# Template Views cho quản lý FAQ (giữ nguyên)
-@login_required
-@user_passes_test(is_admin)
-def manage_faqs(request):
-    query = request.GET.get('q', '')
-    faqs = models.Faq.objects.all().order_by('-created_at')
-    if query:
-        faqs = faqs.filter(
-            Q(question_keywords__icontains=query) |
-            Q(answer__icontains=query)
-        )
-    paginator = Paginator(faqs, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    if request.method == 'POST':
-        form = FaqForm(request.POST)
-        if form.is_valid():
-            faq = form.save(commit=False)
-            faq.created_by = request.user
-            faq.save()
-            messages.success(request, "Thêm FAQ thành công!")
-            return redirect('manage_faqs')
-    else:
-        form = FaqForm()
-
-    return render(request, 'manage_faqs.html', {'page_obj': page_obj, 'form': form, 'query': query})
-
-
-@login_required
-@user_passes_test(is_admin)
-def edit_faq(request, faq_id):
-    faq = get_object_or_404(models.Faq, id=faq_id)
-    if request.method == 'POST':
-        form = FaqForm(request.POST, instance=faq)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Cập nhật FAQ thành công!")
-            return redirect('manage_faqs')
-    else:
-        form = FaqForm(instance=faq)
-    return render(request, 'edit_faq.html', {'form': form, 'faq': faq})
-
-
-@login_required
-@user_passes_test(is_admin)
-def delete_faq(request, faq_id):
-    faq = get_object_or_404(models.Faq, id=faq_id)
-    if request.method == 'POST':
-        faq.delete()
-        messages.success(request, "Xóa FAQ thành công!")
-        return redirect('manage_faqs')
-    return render(request, 'delete_faq.html', {'faq': faq})
-
-
-@login_required
-@user_passes_test(is_admin)
-def faq_stats(request):
-    total_faqs = models.Faq.objects.count()
-    total_unanswered = models.UnansweredQuestion.objects.count()
-    recent_unanswered = models.UnansweredQuestion.objects.order_by('-created_at')[:5]
-    return render(request, 'faq_stats.html', {
-        'total_faqs': total_faqs,
-        'total_unanswered': total_unanswered,
-        'recent_unanswered': recent_unanswered,
-    })
-
-
-@login_required
-@user_passes_test(is_admin)
-def unanswered_questions(request):
-    query = request.GET.get('q', '')
-    questions = models.UnansweredQuestion.objects.all().order_by('-created_at')
-    if query:
-        questions = questions.filter(question__icontains=query)
-    paginator = Paginator(questions, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    return render(request, 'unanswered_questions.html', {'page_obj': page_obj, 'query': query})
-
-
-@login_required
-@user_passes_test(is_admin)
-def export_faqs(request):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="faqs.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['Từ khóa', 'Câu trả lời', 'Người tạo', 'Thời gian tạo'])
-    faqs = models.Faq.objects.all()
-    for faq in faqs:
-        writer.writerow([faq.question_keywords, faq.answer, faq.created_by, faq.created_at])
-    return response
-
-
-@login_required
-@user_passes_test(is_admin)
-def export_unanswered(request):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="unanswered_questions.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['Câu hỏi', 'Người dùng', 'Thời gian'])
-    questions = models.UnansweredQuestion.objects.all()
-    for question in questions:
-        writer.writerow([question.question, question.user, question.created_at])
-    return response
 
 class StatsAPIView(APIView):
     def get(self, request):

@@ -209,7 +209,7 @@ class InjectionSiteSerializer(serializers.ModelSerializer):
 
 
 class ChatMessageSerializer(serializers.ModelSerializer):
-    sender = serializers.StringRelatedField(allow_null=True)  # Cho phép null cho AI
+    sender = serializers.StringRelatedField(allow_null=True)
 
     class Meta:
         model = ChatMessage
