@@ -17,10 +17,15 @@ import { authApis, endpoints } from "../../configs/Apis";
 const EditHealthNote = ({ navigation }) => {
   const [records, setRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
+  const [displayedRecords, setDisplayedRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [saving, setSaving] = useState({});
+  const [notes, setNotes] = useState({}); // State để lưu ghi chú cho từng record
+  const [page, setPage] = useState(1);
+  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
 
-  const currentDate = new Date("2025-06-02T18:52:00+07:00"); // Thời gian hiện tại: 06:52 PM +07, 02/06/2025
+  const currentDate = new Date("2025-06-04T15:17:00+07:00"); // Thời gian hiện tại: 03:17 PM +07, 04/06/2025
 
   useEffect(() => {
     fetchRecords();
@@ -32,19 +37,50 @@ const EditHealthNote = ({ navigation }) => {
       const token = await AsyncStorage.getItem("token");
       if (!token) throw new Error("Token không tồn tại.");
 
-      const response = await authApis(token).get(endpoints["recordSearch"]);
+      console.log("Token from AsyncStorage:", token.substring(0, 10) + "...");
+      const url = endpoints["recordSearch"];
+      console.log("Fetching records from:", url);
+
+      const response = await authApis(token).get(url);
+
+      if (response.status !== 200) {
+        throw new Error(`Server returned status ${response.status}: ${JSON.stringify(response.data)}`);
+      }
+
       console.log("Records API response:", JSON.stringify(response.data, null, 2));
 
-      // Giả định mỗi record có healthnote
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error("Dữ liệu trả về không phải là danh sách hoặc rỗng.");
+      }
+
       const recordsWithNotes = response.data.map((item) => ({
         ...item,
-        healthnote: item.healthnote || "Chưa có ghi chú", // Giá trị mặc định nếu không có
+        health_note: item.health_note || "",
       }));
       setRecords(recordsWithNotes);
       setFilteredRecords(recordsWithNotes);
+
+      // Khởi tạo notes từ health_note của các record
+      const initialNotes = recordsWithNotes.reduce((acc, item) => {
+        acc[item.id] = item.health_note || "";
+        return acc;
+      }, {});
+      setNotes(initialNotes);
+
+      // Hiển thị trang đầu tiên
+      setDisplayedRecords(recordsWithNotes.slice(0, pageSize));
+      setPage(1);
     } catch (error) {
-      console.error("Error fetching records:", error.message);
-      Alert.alert("Lỗi", "Không thể tải danh sách hồ sơ. Vui lòng thử lại.");
+      console.error("Error fetching records:", error.message, error.response?.data, error.response?.status);
+      let errorMessage = `Không thể tải danh sách hồ sơ. Chi tiết: ${error.message}`;
+      if (error.message.includes("Network Error")) {
+        errorMessage = "Lỗi mạng. Vui lòng kiểm tra kết nối và đảm bảo server đang chạy.";
+      } else if (error.response?.status === 401) {
+        errorMessage = "Unauthorized: Token không hợp lệ. Vui lòng đăng nhập lại.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Forbidden: Bạn không có quyền truy cập.";
+      }
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -53,55 +89,102 @@ const EditHealthNote = ({ navigation }) => {
   const handleSearch = (text) => {
     setSearchQuery(text);
     if (text) {
-      const filtered = records.filter((item) =>
-        item.id.toString().includes(text) ||
-        (item.user?.first_name || "").toLowerCase().includes(text.toLowerCase()) ||
-        (item.user?.last_name || "").toLowerCase().includes(text.toLowerCase())
+      const filtered = records.filter(
+        (item) =>
+          item.id?.toString().includes(text) ||
+          (item.username || "").toLowerCase().includes(text.toLowerCase()) ||
+          (item.user?.first_name || "").toLowerCase().includes(text.toLowerCase()) ||
+          (item.user?.last_name || "").toLowerCase().includes(text.toLowerCase())
       );
       setFilteredRecords(filtered);
+      setDisplayedRecords(filtered.slice(0, pageSize));
+      setPage(1);
     } else {
       setFilteredRecords(records);
+      setDisplayedRecords(records.slice(0, pageSize));
+      setPage(1);
     }
+  };
+
+  const loadMoreRecords = () => {
+    if (displayedRecords.length >= filteredRecords.length) return;
+
+    const nextPage = page + 1;
+    const newRecords = filteredRecords.slice(0, nextPage * pageSize);
+    setDisplayedRecords(newRecords);
+    setPage(nextPage);
+
+    console.log("loadMoreRecords - New page:", nextPage);
+    console.log("loadMoreRecords - New displayed records:", newRecords.length);
   };
 
   const updateHealthNote = async (recordId, currentNote) => {
-    try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) throw new Error("Token không tồn tại.");
+    setSaving((prev) => ({ ...prev, [recordId]: true }));
 
-      if (!currentNote.trim()) {
-        Alert.alert("Lỗi", "Vui lòng nhập hoặc giữ ghi chú!");
-        return;
-      }
+    Alert.alert("Xác nhận", "Bạn có muốn cập nhật ghi chú này?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Lưu",
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem("token");
+            if (!token) throw new Error("Token không tồn tại.");
 
-      const endpoint = endpoints["records"](recordId);
-      console.log("Updating health note with endpoint:", endpoint);
-      const response = await authApis(token).patch(endpoint, { healthnote: currentNote });
-      console.log("Update health note response:", JSON.stringify(response.data, null, 2));
+            const endpoint = endpoints.records(recordId);
+            console.log("Updating health note with endpoint:", endpoint);
 
-      setRecords((prev) =>
-        prev.map((item) =>
-          item.id === recordId ? { ...item, healthnote: currentNote } : item
-        )
-      );
-      setFilteredRecords((prev) =>
-        prev.map((item) =>
-          item.id === recordId ? { ...item, healthnote: currentNote } : item
-        )
-      );
-      Alert.alert("Thành công", "Ghi chú đã được cập nhật!");
-    } catch (error) {
-      console.error("Error updating health note:", error.response?.data || error.message);
-      Alert.alert(
-        "Lỗi",
-        error.response?.data?.detail || "Không thể cập nhật ghi chú. Vui lòng thử lại."
-      );
-    }
+            const payload = { health_note: currentNote || "" }; // Cho phép lưu chuỗi rỗng
+            const response = await authApis(token).patch(endpoint, payload);
+
+            if (response.status !== 200) {
+              throw new Error(`Server returned status ${response.status}: ${JSON.stringify(response.data)}`);
+            }
+
+            console.log("Update health note response:", JSON.stringify(response.data, null, 2));
+
+            setNotes((prev) => ({ ...prev, [recordId]: currentNote || "" }));
+            setRecords((prev) =>
+              prev.map((item) =>
+                item.id === recordId ? { ...item, health_note: currentNote || "" } : item
+              )
+            );
+            setFilteredRecords((prev) =>
+              prev.map((item) =>
+                item.id === recordId ? { ...item, health_note: currentNote || "" } : item
+              )
+            );
+            setDisplayedRecords((prev) =>
+              prev.map((item) =>
+                item.id === recordId ? { ...item, health_note: currentNote || "" } : item
+              )
+            );
+            Alert.alert("Thành công", "Ghi chú đã được cập nhật!");
+          } catch (error) {
+            console.error("Error updating health note:", error.response?.data || error.message);
+            let errorMessage = "Không thể cập nhật ghi chú. Vui lòng thử lại.";
+            if (error.message.includes("Network Error")) {
+              errorMessage = "Lỗi mạng. Vui lòng kiểm tra kết nối và đảm bảo server đang chạy.";
+            } else if (error.response?.status === 401) {
+              errorMessage = "Unauthorized: Token không hợp lệ. Vui lòng đăng nhập lại.";
+            } else if (error.response?.status === 403) {
+              errorMessage = "Forbidden: Bạn không có quyền cập nhật.";
+            } else if (error.response?.status === 404) {
+              errorMessage = error.response.data?.message || "Bản ghi không tồn tại.";
+            } else if (error.response?.status === 400) {
+              errorMessage = error.response.data?.message || "Dữ liệu không hợp lệ.";
+            }
+            Alert.alert("Lỗi", errorMessage);
+          } finally {
+            setSaving((prev) => ({ ...prev, [recordId]: false }));
+          }
+        },
+      },
+    ]);
   };
 
   const renderItem = ({ item }) => {
-    const [noteText, setNoteText] = useState(item.healthnote || "Chưa có ghi chú");
-    const recordDate = item.date || item.schedule?.date;
+    const noteText = notes[item.id] || "";
+    const recordDate = item.injection_date || item.schedule?.date;
 
     return (
       <View style={styles.itemCard}>
@@ -110,25 +193,42 @@ const EditHealthNote = ({ navigation }) => {
             ID: {item.id}
           </Text>
           <Text style={styles.itemText}>
-            Tên: {item.user?.first_name || "Không xác định"} {item.user?.last_name || ""}
+            Tài khoản người tiêm: {item?.username || "Không xác định"}
           </Text>
           <Text style={styles.itemText}>
             Ngày: {recordDate ? new Date(recordDate).toLocaleDateString("vi-VN") : "Không xác định"}
           </Text>
+          <Text style={styles.itemText}>
+            Vaccine: {item.vaccine_name || "Không xác định"}
+          </Text>
           <TextInput
             style={styles.noteInput}
-            placeholder="Nhập hoặc sửa ghi chú sức khỏe..."
+            placeholder={noteText ? "" : "Chưa có ghi chú"}
             value={noteText}
-            onChangeText={setNoteText}
+            onChangeText={(text) => setNotes((prev) => ({ ...prev, [item.id]: text }))}
             multiline
           />
           <TouchableOpacity
             style={styles.addNoteButton}
             onPress={() => updateHealthNote(item.id, noteText)}
+            disabled={saving[item.id]}
           >
-            <Text style={styles.addNoteText}>Lưu ghi chú</Text>
+            {saving[item.id] ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.addNoteText}>Lưu ghi chú</Text>
+            )}
           </TouchableOpacity>
         </View>
+      </View>
+    );
+  };
+
+  const renderFooter = () => {
+    if (displayedRecords.length >= filteredRecords.length) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#0c5776" />
       </View>
     );
   };
@@ -148,7 +248,7 @@ const EditHealthNote = ({ navigation }) => {
         <MaterialCommunityIcons name="magnify" size={20} color="#021b42" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm theo ID hoặc tên..."
+          placeholder="Nhập ID hồ sơ hoặc tên người dùng"
           value={searchQuery}
           onChangeText={handleSearch}
           autoCapitalize="none"
@@ -159,13 +259,14 @@ const EditHealthNote = ({ navigation }) => {
         <ActivityIndicator size="large" color="#0c5776" style={styles.loader} />
       ) : (
         <FlatList
-          data={filteredRecords}
+          data={displayedRecords}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>Không có hồ sơ nào.</Text>
-          }
+          keyExtractor={(item) => item.id?.toString()}
+          ListEmptyComponent={<Text style={styles.emptyText}>Không có hồ sơ nào.</Text>}
           contentContainerStyle={styles.listContainer}
+          onEndReached={loadMoreRecords}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       )}
     </View>
@@ -211,7 +312,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#021b42",
   },
-  listContainer: { paddingBottom: 20 },
+  listContainer: { paddingBottom: 20, paddingHorizontal: 16 },
   itemCard: {
     borderRadius: 8,
     padding: 16,
@@ -239,10 +340,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     alignItems: "center",
+    marginTop: 8,
   },
   addNoteText: { color: "#fff", fontSize: 14, fontWeight: "bold" },
   emptyText: { fontSize: 16, color: "#021b42", textAlign: "center", marginTop: 20 },
   loader: { marginVertical: 20 },
+  footerLoader: { paddingVertical: 20, alignItems: "center" },
 });
 
 export default EditHealthNote;

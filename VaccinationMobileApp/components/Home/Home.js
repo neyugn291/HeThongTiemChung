@@ -67,7 +67,6 @@ const Home = ({ navigation, route }) => {
   const navItems = [
     { icon: "home", label: "Trang chủ", screen: "Home" },
     { icon: "bell-badge", label: "Nhắc lịch tiêm", screen: "Reminders" },
-    { icon: "message", label: "Liên hệ", screen: "Contact" },
     { icon: "account", label: "Tài khoản", screen: "Account" },
   ];
 
@@ -89,7 +88,7 @@ const Home = ({ navigation, route }) => {
   );
 
   const handleOpenAI = () => {
-    console.log("Mở AI - Chức năng sẽ được tích hợp sau");
+    navigation.navigate("ChatScreen");
   };
 
   return (

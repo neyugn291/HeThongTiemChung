@@ -21,7 +21,7 @@ const AccountManagement = ({ navigation, route }) => {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const itemsPerPage = 10;
+  const itemsPerPage = 4;
 
   useEffect(() => {
     console.log("Initial fetchUsers on mount");

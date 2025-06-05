@@ -1,15 +1,11 @@
-import uuid
-
 from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.models import BaseUserManager
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from rest_framework import permissions
 
 
 # Create your models here.
@@ -114,7 +110,6 @@ class InjectionSchedule(BaseModel):
         return f"{self.vaccine.name} - {self.date}"
 
 
-
 class Appointment(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     schedule = models.ForeignKey(InjectionSchedule, on_delete=models.CASCADE)
@@ -191,9 +186,10 @@ class VaccinationRecord(BaseModel):
 
 
 class ChatMessage(models.Model):
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     text = models.TextField()
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(default=timezone.now)
+    is_user = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.sender}: {self.text[:30]}"
+        return f"{self.sender or 'AI'}: {self.text[:30]}"

@@ -115,7 +115,7 @@ const AdminHome = ({ navigation, route }) => {
       </ScrollView>
 
       <View>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("Stats")}>
           <Text style={Styles.footerText}>
             Xem báo cáo thống kê từ các đợt tiêm chủng
           </Text>

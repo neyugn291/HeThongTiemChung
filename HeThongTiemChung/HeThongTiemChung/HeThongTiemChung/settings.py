@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,9 +25,11 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
 ALLOWED_HOSTS = ['192.168.1.11',
                  '127.0.0.1',
                  '192.168.4.24']  # Runserver IP Lan máy tính + port
+
 
 # Application definition
 
@@ -120,10 +122,11 @@ DATABASES = {
 }
 
 INTERNAL_IPS = [
-    '192.168.1.11',  # Runserver IP Lan máy tính + port
+    '192.168.1.7',  # Runserver IP Lan máy tính + port
     '127.0.0.1'
     '192.168.4.24'
  ]
+
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
@@ -134,7 +137,6 @@ AUTH_USER_MODEL = 'AppTiemChung.User'
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
-import cloudinary
 import cloudinary.uploader
 
 cloudinary.config(
@@ -183,8 +185,9 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-CLIENT_ID = 'agJuPMBypbKiY1K9PRpoWidY7pZRKj6tOZPLo6to'
-CLIENT_SECRET = '81Wqvd6EC8DiIGMQjLQm4jJV8vN8DEuXaDuHUKzXdlzXkOb3AUf9zDIIs4nv1ootwKcbKUUmIcnQGU00tLiPm7jl2QVnwvFw1be0DSdMm7haj22LqcLUKJL2tC1nFogv'
+CLIENT_ID = 'kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup'
+CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK'
+
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # bắt buộc
@@ -203,4 +206,3 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'dhnguyen243@gmail.com'  # Thay bằng email thật
 EMAIL_HOST_PASSWORD = 'iqhm vaao xybp qcjp'  # Dùng app password, KHÔNG dùng password tài khoản
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-

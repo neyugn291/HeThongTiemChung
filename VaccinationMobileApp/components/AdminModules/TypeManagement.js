@@ -17,12 +17,15 @@ import { authApis, endpoints } from "../../configs/Apis";
 
 const TypeManagement = ({ navigation }) => {
   const [vaccineTypes, setVaccineTypes] = useState([]);
+  const [displayedVaccineTypes, setDisplayedVaccineTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [newTypeName, setNewTypeName] = useState("");
   const [editTypeId, setEditTypeId] = useState(null);
   const [editTypeName, setEditTypeName] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
 
   useEffect(() => {
     fetchVaccineTypes();
@@ -40,12 +43,26 @@ const TypeManagement = ({ navigation }) => {
         a.name.localeCompare(b.name)
       );
       setVaccineTypes(sortedTypes);
+      setDisplayedVaccineTypes(sortedTypes.slice(0, pageSize)); // Hiển thị trang đầu tiên
+      setPage(1);
     } catch (error) {
       console.error("Error details:", error.response?.data || error.message); // Log
       Alert.alert("Lỗi", "Không thể tải danh sách loại vaccine.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadMoreVaccineTypes = () => {
+    if (displayedVaccineTypes.length >= vaccineTypes.length) return;
+
+    const nextPage = page + 1;
+    const newTypes = vaccineTypes.slice(0, nextPage * pageSize);
+    setDisplayedVaccineTypes(newTypes);
+    setPage(nextPage);
+
+    console.log("loadMoreVaccineTypes - New page:", nextPage);
+    console.log("loadMoreVaccineTypes - New displayed types:", newTypes.length);
   };
 
   // Thêm loại vaccine
@@ -160,6 +177,15 @@ const TypeManagement = ({ navigation }) => {
     </View>
   );
 
+  const renderFooter = () => {
+    if (displayedVaccineTypes.length >= vaccineTypes.length) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#0c5776" />
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar
@@ -189,13 +215,16 @@ const TypeManagement = ({ navigation }) => {
             <Text style={styles.addButtonText}>Thêm Loại Vaccine</Text>
           </TouchableOpacity>
           <FlatList
-            data={vaccineTypes}
+            data={displayedVaccineTypes}
             renderItem={renderVaccineType}
             keyExtractor={(item) => item.id.toString()}
             ListEmptyComponent={
               <Text style={styles.emptyText}>Không có loại vaccine nào.</Text>
             }
             contentContainerStyle={styles.listContainer}
+            onEndReached={loadMoreVaccineTypes}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
           />
         </View>
       )}
@@ -365,6 +394,10 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 20,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: "center",
   },
   modalContainer: {
     flex: 1,

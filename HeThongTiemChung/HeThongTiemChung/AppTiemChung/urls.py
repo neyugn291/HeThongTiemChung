@@ -13,12 +13,13 @@ router.register('appointments', views.AppointmentAdminViewSet, basename='appoint
 router.register('records', views.VaccinationRecordViewSet, basename='records')
 router.register(r'schedules', views.InjectionScheduleViewSet, basename='injectionschedule')
 router.register(r'sites', views.InjectionSiteViewSet, basename='injectionsite')
-router.register(r'chatmessages', views.ChatMessageViewSet, basename='message')
-
+router.register(r'chat-messages', views.ChatMessageViewSet, basename='chat-message')
 
 urlpatterns = [
     path('', include(router.urls)),  # Bao gồm tất cả các URL từ router
     path('', views.index, name="index"),  # URL gốc trỏ tới index (nếu cần)
     path('chat/', views.chat_view, name='chat'),
     path('stats/', views.StatsAPIView.as_view(), name='stats-api'),
+    path('ai-chat/', views.ai_chat, name='ai-chat'),
+    path('check-question/', views.check_question, name='check-question'),
 ]

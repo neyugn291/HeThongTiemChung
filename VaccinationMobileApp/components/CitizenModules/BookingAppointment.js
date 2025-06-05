@@ -21,7 +21,7 @@ const BookingAppointment = ({ navigation }) => {
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showAllAppointments, setShowAllAppointments] = useState(false);
-  const itemsPerPage = 10;
+  const itemsPerPage = 4;
 
   const currentDate = new Date("2025-06-02T13:35:00+07:00"); // Thời gian hiện tại: 01:35 PM +07, 02/06/2025
 

@@ -28,7 +28,7 @@ const InjectionSearch = ({ navigation }) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [q, setQ] = useState("");
   const [showPastSchedules, setShowPastSchedules] = useState(false);
-  const itemsPerPage = 20;
+  const itemsPerPage = 4;
 
   useEffect(() => {
     fetchSchedules();
