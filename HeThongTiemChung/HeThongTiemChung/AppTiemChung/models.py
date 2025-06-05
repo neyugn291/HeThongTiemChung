@@ -193,3 +193,39 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.sender or 'AI'}: {self.text[:30]}"
+
+
+class Faq(models.Model):
+    question_keywords = models.CharField(max_length=255)  # Từ khóa để so khớp câu hỏi
+    answer = models.TextField()  # Câu trả lời
+    created_at = models.DateTimeField(auto_now_add=True)  # Thời gian tạo
+    updated_at = models.DateTimeField(auto_now=True)  # Thời gian cập nhật
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # Người tạo
+
+    def __str__(self):
+        return f"FAQ: {self.question_keywords}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['question_keywords']),  # Tối ưu truy vấn theo từ khóa
+        ]
+
+class UnansweredQuestion(models.Model):
+    question = models.TextField()  # Câu hỏi không được trả lời
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # Người dùng
+    created_at = models.DateTimeField(auto_now_add=True)  # Thời gian tạo
+
+    def __str__(self):
+        return f"Unanswered: {self.question}"
+
+class QueryLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='query_logs')
+    question = models.TextField()
+    answer = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"Query by {self.user.username} at {self.timestamp}"

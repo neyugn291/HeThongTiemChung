@@ -10,10 +10,8 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  Modal,
-  Clipboard,
+  scrollToEnd
 } from "react-native";
-import { WebView } from 'react-native-webview';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -24,10 +22,6 @@ const ChatScreen = ({ navigation }) => {
   const [showPrompts, setShowPrompts] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [showWebView, setShowWebView] = useState(false);
-  const [webViewUrl, setWebViewUrl] = useState("");
-  const [currentUserMessageId, setCurrentUserMessageId] = useState(null);
-  const [useWebViewMode, setUseWebViewMode] = useState(true); // Toggle giữa WebView và API
   const flatListRef = useRef(null);
 
   useEffect(() => {
@@ -48,6 +42,7 @@ const ChatScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error("Lỗi khi tải lịch sử tin nhắn:", error);
+      Alert.alert("Lỗi", "Không thể tải lịch sử tin nhắn. Vui lòng thử lại sau!");
     } finally {
       setIsLoading(false);
     }
@@ -60,111 +55,63 @@ const ChatScreen = ({ navigation }) => {
     try {
       const token = await AsyncStorage.getItem("token");
 
-      // Kiểm tra câu hỏi trước
-      const checkResponse = await authApis(token).post(endpoints["checkQuestion"], {
-        question: trimmedText,
-      });
-
-      if (!checkResponse.data.allowed) {
-        Alert.alert(
-          "Câu hỏi không hợp lệ",
-          checkResponse.data.message || "Chỉ hỗ trợ câu hỏi về vắc-xin hoặc sức khỏe.",
-          [{ text: "OK" }]
-        );
-        return;
-      }
-
       setShowPrompts(false);
       setInputText("");
       setIsTyping(true);
 
-      if (useWebViewMode) {
-        // Sử dụng WebView mode
-        const response = await authApis(token).post(endpoints["aiChat"], {
-          message: trimmedText,
-        });
-
-        if (response.data && response.data.use_webview) {
-          // Thêm tin nhắn user vào danh sách
-          setMessages(prevMessages => [...prevMessages, response.data.user_message]);
-          
-          // Mở WebView với ChatGPT
-          setCurrentUserMessageId(response.data.user_message.id);
-          setWebViewUrl(response.data.chatgpt_url);
-          setShowWebView(true);
-          setIsTyping(false);
-        }
-      } else {
-        // Sử dụng Free API mode
-        const response = await authApis(token).post(endpoints["aiChatFree"], {
-          message: trimmedText,
-        });
-
-        if (response.data && response.data.user_message && response.data.ai_response) {
-          setMessages(prevMessages => [
-            ...prevMessages,
-            response.data.user_message,
-            response.data.ai_response,
-          ]);
-        }
-        setIsTyping(false);
-      }
-
-    } catch (error) {
-      console.error("Lỗi khi gửi tin nhắn:", error);
-      setIsTyping(false);
-      
-      const errorMessage = {
-        id: `error-${Date.now()}`,
-        text: error.response?.data?.detail || "Có lỗi xảy ra, vui lòng thử lại sau!",
-        is_user: false,
+      // Thêm tin nhắn user ngay lập tức
+      const userMessage = {
+        id: `user-${Date.now()}`,
+        text: trimmedText,
+        is_user: true,
         timestamp: new Date().toISOString(),
         sender: null
       };
       
-      setMessages(prevMessages => [...prevMessages, errorMessage]);
-    }
-  };
+      setMessages(prevMessages => [...prevMessages, userMessage]);
 
-  const handleWebViewResponse = async (aiResponse) => {
-    if (!aiResponse.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập phản hồi từ AI");
-      return;
-    }
-
-    try {
-      const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).post(endpoints["saveAiResponse"], {
-        ai_response: aiResponse,
-        user_message_id: currentUserMessageId,
+      // Gọi API để lấy phản hồi từ AI
+      const response = await authApis(token).post(endpoints["aiChat"], {
+        message: trimmedText,
       });
 
-      if (response.data && response.data.ai_message) {
-        setMessages(prevMessages => [...prevMessages, response.data.ai_message]);
+      // Kiểm tra dữ liệu trả về
+      if (response.status === 200 && response.data && response.data.success) {
+        const { user_message, ai_response } = response.data;
+        if (user_message && ai_response) {
+          // Cập nhật tin nhắn với dữ liệu từ server
+          setMessages(prevMessages => {
+            const filteredMessages = prevMessages.filter(msg => msg.id !== userMessage.id);
+            return [
+              ...filteredMessages,
+              user_message,
+              ai_response,
+            ];
+          });
+        } else {
+          throw new Error("Dữ liệu trả về không đúng định dạng.");
+        }
+      } else {
+        throw new Error(response.data?.detail || "Phản hồi API không thành công.");
       }
 
-      setShowWebView(false);
-      setWebViewUrl("");
-      setCurrentUserMessageId(null);
     } catch (error) {
-      console.error("Lỗi khi lưu phản hồi AI:", error);
-      Alert.alert("Lỗi", "Không thể lưu phản hồi AI");
+      console.error("Lỗi khi gửi tin nhắn:", error);
+      
+      // Loại bỏ tin nhắn user tạm thời nếu có lỗi
+      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== userMessage.id));
+
+      // Hiển thị thông báo lỗi bằng Alert
+      const errorDetail = error.response?.data?.detail || error.message || "Có lỗi xảy ra, vui lòng thử lại sau!";
+      Alert.alert("Lỗi", errorDetail, [{ text: "OK" }]);
+    } finally {
+      setIsTyping(false);
     }
   };
 
   const handlePromptPress = (promptText) => {
     setInputText(promptText);
     setShowPrompts(false);
-  };
-
-  const toggleMode = () => {
-    setUseWebViewMode(!useWebViewMode);
-    Alert.alert(
-      "Đã chuyển chế độ",
-      useWebViewMode 
-        ? "Chuyển sang chế độ API miễn phí (có thể chậm hơn)" 
-        : "Chuyển sang chế độ WebView ChatGPT"
-    );
   };
 
   const renderMessage = ({ item }) => (
@@ -192,58 +139,14 @@ const ChatScreen = ({ navigation }) => {
     </View>
   );
 
-  const renderWebViewModal = () => (
-    <Modal
-      visible={showWebView}
-      animationType="slide"
-      onRequestClose={() => setShowWebView(false)}
-    >
-      <View style={styles.webViewContainer}>
-        <View style={styles.webViewHeader}>
-          <TouchableOpacity
-            onPress={() => setShowWebView(false)}
-            style={styles.closeButton}
-          >
-            <MaterialCommunityIcons name="close" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.webViewTitle}>ChatGPT</Text>
-          <TouchableOpacity
-            onPress={() => {
-              Alert.prompt(
-                "Nhập phản hồi từ AI",
-                "Copy phản hồi từ ChatGPT và paste vào đây:",
-                [
-                  { text: "Hủy", style: "cancel" },
-                  { 
-                    text: "Lưu", 
-                    onPress: (text) => handleWebViewResponse(text)
-                  }
-                ],
-                "plain-text"
-              );
-            }}
-            style={styles.saveButton}
-          >
-            <MaterialCommunityIcons name="content-save" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-        
-        <WebView
-          source={{ uri: webViewUrl }}
-          style={styles.webView}
-          onError={() => {
-            Alert.alert("Lỗi", "Không thể tải ChatGPT. Vui lòng kiểm tra kết nối internet.");
-          }}
-        />
-        
-        <View style={styles.webViewFooter}>
-          <Text style={styles.instructionText}>
-            💡 Hướng dẫn: Chat với AI trong trang web, sau đó copy phản hồi và nhấn nút lưu ở trên
-          </Text>
-        </View>
-      </View>
-    </Modal>
-  );
+  // Scroll to bottom when new messages are added
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
 
   return (
     <KeyboardAvoidingView
@@ -261,20 +164,14 @@ const ChatScreen = ({ navigation }) => {
         
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Chat với AI</Text>
-          <Text style={styles.headerSubtitle}>
-            {useWebViewMode ? "WebView Mode" : "API Mode"}
-          </Text>
+          <Text style={styles.headerSubtitle}>Chuyên gia vắc-xin & sức khỏe</Text>
         </View>
         
         <TouchableOpacity 
-          onPress={toggleMode}
-          style={styles.modeButton}
+          onPress={() => loadChatHistory()}
+          style={styles.refreshButton}
         >
-          <MaterialCommunityIcons 
-            name={useWebViewMode ? "web" : "api"} 
-            size={20} 
-            color="#fff" 
-          />
+          <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -292,22 +189,17 @@ const ChatScreen = ({ navigation }) => {
           style={styles.chatList}
           contentContainerStyle={styles.chatListContent}
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => {
-            if (flatListRef.current && messages.length > 0) {
-              setTimeout(() => {
-                flatListRef.current.scrollToEnd({ animated: true });
-              }, 100);
-            }
-          }}
         />
       )}
 
       {isTyping && (
         <View style={styles.typingContainer}>
-          <ActivityIndicator size="small" color="#0c5776" />
-          <Text style={styles.typingText}>
-            {useWebViewMode ? "Đang mở ChatGPT..." : "AI đang trả lời..."}
-          </Text>
+          <View style={styles.typingIndicator}>
+            <View style={[styles.typingDot, { animationDelay: '0ms' }]} />
+            <View style={[styles.typingDot, { animationDelay: '150ms' }]} />
+            <View style={[styles.typingDot, { animationDelay: '300ms' }]} />
+          </View>
+          <Text style={styles.typingText}>AI đang trả lời...</Text>
         </View>
       )}
 
@@ -361,10 +253,15 @@ const ChatScreen = ({ navigation }) => {
           >
             <Text style={styles.promptText}>🏥 Cách chăm sóc và theo dõi sau khi tiêm vaccine?</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.promptItem}
+            onPress={() => handlePromptPress("Tác dụng phụ của vaccine có nguy hiểm không?")}
+          >
+            <Text style={styles.promptText}>⚠️ Tác dụng phụ của vaccine có nguy hiểm không?</Text>
+          </TouchableOpacity>
         </View>
       )}
-
-      {renderWebViewModal()}
     </KeyboardAvoidingView>
   );
 };
@@ -400,7 +297,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  modeButton: {
+  refreshButton: {
     padding: 8,
   },
   loadingContainer: {
@@ -468,15 +365,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 10,
+    padding: 15,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#e1e8ed",
   },
+  typingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#0c5776",
+    marginHorizontal: 2,
+    opacity: 0.4,
+  },
   typingText: {
-    marginLeft: 8,
     color: "#666",
     fontStyle: "italic",
+    fontSize: 14,
   },
   inputContainer: {
     flexDirection: "row",
@@ -529,48 +439,6 @@ const styles = StyleSheet.create({
   promptText: {
     fontSize: 14,
     color: "#333",
-    lineHeight: 20,
-  },
-  // WebView Modal Styles
-  webViewContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  webViewHeader: {
-    height: 100,
-    backgroundColor: "#0c5776",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingTop: 40,
-  },
-  closeButton: {
-    padding: 8,
-  },
-  webViewTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-    flex: 1,
-    textAlign: "center",
-  },
-  saveButton: {
-    padding: 8,
-  },
-  webView: {
-    flex: 1,
-  },
-  webViewFooter: {
-    padding: 15,
-    backgroundColor: "#f8f9fa",
-    borderTopWidth: 1,
-    borderTopColor: "#e1e8ed",
-  },
-  instructionText: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
     lineHeight: 20,
   },
 });

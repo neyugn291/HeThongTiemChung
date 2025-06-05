@@ -25,11 +25,8 @@ SECRET_KEY = 'django-insecure-tf*ghgnni#$ky0qc*sp_h^yvp9i(**q-2oz02!ou37t%q(0vu&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-
-ALLOWED_HOSTS = ['192.168.1.11',
-                 '127.0.0.1',
-                 '192.168.4.24']  # Runserver IP Lan máy tính + port
-
+ALLOWED_HOSTS = ['192.168.2.224',
+                 '127.0.0.1']  # Runserver IP Lan máy tính + port
 
 # Application definition
 
@@ -122,7 +119,7 @@ DATABASES = {
 }
 
 INTERNAL_IPS = [
-    '192.168.1.7',  # Runserver IP Lan máy tính + port
+    '192.168.2.224',  # Runserver IP Lan máy tính + port
     '127.0.0.1'
     '192.168.4.24'
  ]
@@ -206,3 +203,10 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'dhnguyen243@gmail.com'  # Thay bằng email thật
 EMAIL_HOST_PASSWORD = 'iqhm vaao xybp qcjp'  # Dùng app password, KHÔNG dùng password tài khoản
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+    }
+}
