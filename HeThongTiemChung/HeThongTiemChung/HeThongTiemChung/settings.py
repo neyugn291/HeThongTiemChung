@@ -113,7 +113,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'vaccinationappdb',
         'USER': 'root',
-        'PASSWORD': 'Abc123',
+        'PASSWORD': 'Demo@123',
         'HOST': ''  # mặc định localhost
     }
 }
@@ -121,7 +121,9 @@ DATABASES = {
 INTERNAL_IPS = [
     '192.168.2.224',  # Runserver IP Lan máy tính + port
     '127.0.0.1'
-]
+    '192.168.4.24'
+ ]
+
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
@@ -179,8 +181,10 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
 CLIENT_ID = 'kbP5vbxNIe2vbVsyK5PixaXpKRK1VPYhZTIBlwup'
 CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7uTkpgianw2yMuUQpf3SlTKdG4BIYRRDIWJV5em453LDgkhmhBFfVJCSKLveiT1tKK'
+
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # bắt buộc
