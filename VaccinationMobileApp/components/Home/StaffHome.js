@@ -47,6 +47,7 @@ const StaffHome = ({ navigation, route }) => {
 
   const navItems = [
     { icon: "home", label: "Trang chủ", screen: "StaffHome" },
+    { icon: "message", label: "Tư vấn", screen: "StaffChatScreen" },
     { icon: "account", label: "Tài khoản", screen: "Account" },
   ];
 

@@ -9,7 +9,7 @@ const StatScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://192.168.2.224:8000/stats/')  // hoặc IP LAN nếu dùng thiết bị thật
+    fetch('http://192.168.1.11:8000/stats/')  // hoặc IP LAN nếu dùng thiết bị thật
       .then((response) => {
         if (!response.ok) throw new Error('Lỗi khi lấy dữ liệu');
         return response.json();
