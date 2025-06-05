@@ -113,7 +113,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'vaccinationappdb',
         'USER': 'root',
-        'PASSWORD': 'Demo@123',
+        'PASSWORD': 'Abc123',
         'HOST': ''  # mặc định localhost
     }
 }
@@ -189,6 +189,7 @@ CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # bắt buộc
 ]
+
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
