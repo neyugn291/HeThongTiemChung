@@ -10,7 +10,8 @@ from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils.html import mark_safe
 
-from .models import Vaccine, VaccineType, User, InjectionSite, InjectionSchedule, VaccinationRecord, Appointment
+from .models import Vaccine, VaccineType, User, InjectionSite, InjectionSchedule, VaccinationRecord, Appointment, Faq, \
+    UnansweredQuestion
 
 
 class AppTiemChungAdminSite(admin.AdminSite):
@@ -121,6 +122,18 @@ class ChatMessageAdmin(admin.ModelAdmin):
     search_fields = ('sender', 'text')
 
 
+class FaqAdmin(admin.ModelAdmin):
+    list_display = ('question_keywords', 'created_by', 'created_at', 'updated_at')
+    search_fields = ('question_keywords', 'answer')
+    list_filter = ('created_at', 'updated_at')
+
+
+class UnansweredQuestionAdmin(admin.ModelAdmin):
+    list_display = ('question', 'user', 'created_at')
+    search_fields = ('question',)
+    list_filter = ('created_at',)
+
+
 admin_site.register(User, MyUserAdmin)
 
 admin_site.register(InjectionSite, InjectionSiteAdmin)
@@ -132,3 +145,5 @@ admin_site.register(VaccineType, VaccineTypeAdmin)
 admin_site.register(Vaccine, VaccineAdmin)
 
 admin_site.register(ChatMessage, ChatMessageAdmin)
+admin_site.register(Faq, FaqAdmin)
+admin_site.register(UnansweredQuestion, UnansweredQuestionAdmin)

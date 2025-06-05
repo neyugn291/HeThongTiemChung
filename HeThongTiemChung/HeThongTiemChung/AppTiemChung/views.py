@@ -1,45 +1,47 @@
-from django.http import HttpResponse
-from django.core.mail import send_mail
-from django.conf import settings
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.views import APIView
 from datetime import datetime
-
-from chatbot.views import model
-
+import hashlib
+from django.conf import settings
+from django.core.mail import send_mail
+from django.http import HttpResponse, FileResponse
+from rest_framework import viewsets, generics, parsers, status
+from django.contrib.auth.decorators import login_required, user_passes_test
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.views import APIView
+import csv
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .models import Vaccine, User, Appointment, VaccinationRecord
+from .serializers import UserSerializer
+from .permissions import IsAdminUser, IsStaffUser
+from AppTiemChung import models
+from AppTiemChung import serializers
+from django.shortcuts import render, redirect, get_object_or_404
+import io
+from reportlab.pdfgen import canvas
+from django.db.models import Count
+import firebase_admin
+from firebase_admin import credentials
+from django.utils import timezone
+import os
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.core.cache import cache
+from pyvi import ViTokenizer
+from difflib import get_close_matches
+from .forms import FaqForm
 
 def index(request):
     return HttpResponse("Vaccination App")
 
-
-from rest_framework import viewsets, permissions, generics, parsers, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-
-from .models import Vaccine, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite, ChatMessage
-from .serializers import AppointmentSerializer, InjectionScheduleSerializer, InjectionSiteSerializer, UserSerializer, \
-    ChatMessageSerializer
-from .permissions import IsAdminUser, IsStaffUser
-
-from AppTiemChung import models
-from AppTiemChung import serializers
-from rest_framework import permissions
-
-from rest_framework.exceptions import NotAuthenticated
-
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-
-
 class VaccineViewSet(viewsets.ModelViewSet):
     queryset = Vaccine.objects.all()
     serializer_class = serializers.VaccineSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
+    permission_classes = [IsAuthenticated]
 
 class VaccineTypeViewSet(viewsets.ViewSet):
     serializer_class = serializers.VaccineTypeSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminUser]
 
     def list(self, request):
         queryset = models.VaccineType.objects.all()
@@ -83,10 +85,9 @@ class VaccineTypeViewSet(viewsets.ViewSet):
         vaccine_type.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
 class AppointmentViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -102,7 +103,7 @@ class AppointmentViewSet(viewsets.ViewSet):
     def create(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
-            serializer.save(user=request.user)  # Gán người dùng hiện tại
+            serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -144,22 +145,20 @@ class AppointmentViewSet(viewsets.ViewSet):
         appointment.save()
         return Response({'message': f'Reminder status updated to {reminder_value}.'})
 
-
 class AppointmentAdminViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
     permission_classes = [IsStaffUser]
 
     def get_queryset(self):
-        return models.Appointment.objects.all()  # Nhân viên y tế có thể xem tất cả lịch hẹn
+        return models.Appointment.objects.all()
 
     def perform_create(self, serializer):
-        # Gán nhân viên y tế khi tạo lịch hẹn
         serializer.save()
 
     def get_object(self, pk):
         try:
-            return model.Appointment.objects.get(pk=pk)
-        except model.Appointment.DoesNotExist:
+            return models.Appointment.objects.get(pk=pk)
+        except models.Appointment.DoesNotExist:
             raise status.HTTP_400_BAD_REQUEST
 
     @action(methods=['get'], detail=False)
@@ -208,10 +207,8 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
             return Response({'detail': 'Missing is_inoculated field.'}, status=400)
 
         appointment.is_inoculated = inoculated_value
-
         appointment.save()
         return Response({'message': f'Appointment inoculated status updated to {inoculated_value}.'})
-
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
@@ -219,34 +216,29 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     parser_classes = [parsers.MultiPartParser]
 
     @action(methods=['get'], url_path='current-user/history', detail=False,
-            permission_classes=[permissions.IsAuthenticated()])
+            permission_classes=[IsAuthenticated])
     def history(self, request):
-        """
-        Lấy lịch sử cuộc hẹn của người dùng hiện tại
-        """
         user = request.user
-        user_appointments = model.Appointment.objects.filter(user=user)
+        user_appointments = models.Appointment.objects.filter(user=user)
         serialized = serializers.AppointmentSerializer(user_appointments, many=True)
         return Response(serialized.data)
 
     def get_permissions(self):
         if self.action in ['current_user']:
-            return [permissions.IsAuthenticated]
+            return [IsAuthenticated]
         elif self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
-            return [IsAdminUser()]  # Chỉ admin mới thao tác với người dùng khác
-        return [permissions.AllowAny()]
+            return [IsAdminUser()]
+        return [AllowAny()]
 
     def list(self, request):
         users = models.User.objects.all()
         serializer = serializers.UserSerializer(users, many=True)
-
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         try:
             user = models.User.objects.get(pk=pk)
-        except model.User.DoesNotExist:
-
+        except models.User.DoesNotExist:
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         serializer = UserSerializer(user)
         return Response(serializer.data)
@@ -260,10 +252,8 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
     def update(self, request, pk=None):
         try:
-
             user = models.User.objects.get(pk=pk)
-        except model.User.DoesNotExist:
-
+        except models.User.DoesNotExist:
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
@@ -276,15 +266,14 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
     def destroy(self, request, pk=None):
         try:
-
             user = models.User.objects.get(pk=pk)
-        except model.User.DoesNotExist:
-
+        except models.User.DoesNotExist:
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['get', 'patch'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated()])
+    @action(methods=['get', 'patch'], url_path='current-user', detail=False,
+            permission_classes=[IsAuthenticated])
     def get_current_user(self, request):
         u = request.user
         if not u.is_authenticated:
@@ -306,29 +295,18 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(UserSerializer(u).data)
 
-
-import io
-from django.http import FileResponse
-from reportlab.pdfgen import canvas
-
-
 class VaccinationRecordViewSet(viewsets.ViewSet):
     serializer_class = serializers.VaccinationRecordSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return models.VaccinationRecord.objects.all()
 
     @action(detail=False, methods=['get'])
     def history(self, request):
-        """
-        Nếu là staff xem tất cả, còn user xem riêng mình.
-        """
         if request.user.is_staff:
-            # Staff xem tất cả bản ghi
             records = self.get_queryset()
         else:
-            # User thường chỉ xem bản ghi của mình
             records = self.get_queryset().filter(user=request.user)
 
         serializer = self.serializer_class(records, many=True)
@@ -341,11 +319,9 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         except models.VaccinationRecord.DoesNotExist:
             return Response({'message': 'Vaccination record not found'}, status=404)
 
-        # ✅ Kiểm tra người dùng có phải chủ sở hữu bản ghi không
         if record.user != request.user:
             return Response({'message': 'Permission denied'}, status=403)
 
-        # ✅ Tạo PDF cho một bản ghi
         buffer = io.BytesIO()
         p = canvas.Canvas(buffer)
 
@@ -366,7 +342,7 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         p.save()
         buffer.seek(0)
 
-        return FileResponse(buffer, as_attachment=True, filename='vaccination_{pk}_certificate.pdf')
+        return FileResponse(buffer, as_attachment=True, filename=f'vaccination_{pk}_certificate.pdf')
 
     @action(detail=False, methods=['get'], url_path='certificate')
     def download_certificate(self, request):
@@ -411,18 +387,13 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         except models.VaccinationRecord.DoesNotExist:
             return Response({'message': 'Vaccination record not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Lấy health note từ request
         health_note = request.data.get('health_note')
-
         if not health_note:
             return Response({'message': 'Health note is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Cập nhật health_note vào bản ghi
         record.health_note = health_note
         record.save()
-
         return Response({'message': 'Health note updated successfully', 'health_note': record.health_note})
-
 
 class InjectionScheduleViewSet(viewsets.ViewSet):
     queryset = models.InjectionSchedule.objects.all()
@@ -430,15 +401,14 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'destroy']:
-            permission_classes = [permissions.IsAdminUser]
+            permission_classes = [IsAdminUser]
         else:
-            permission_classes = [permissions.IsAuthenticated]
+            permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def list(self, request):
         schedules = models.InjectionSchedule.objects.all()
         serializer = self.serializer_class(schedules, many=True)
-
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
@@ -491,79 +461,87 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['get'])
     def check_availability(self, request, pk=None):
-        """
-        Kiểm tra xem lịch tiêm tại một địa điểm có còn chỗ trống hay không.
-        """
         schedule = self.get_object()
-        available_slots = schedule.slot_count  # Lấy số lượng slot còn lại
+        available_slots = schedule.slot_count
         if available_slots > 0:
-            return Response({"message": "Chỗ trống còn lại: {}".format(available_slots)})
+            return Response({"message": f"Chỗ trống còn lại: {available_slots}"})
         else:
             return Response({"message": "Không còn chỗ trống"}, status=404)
 
     @action(detail=False, methods=['get'])
     def upcoming_schedules(self, request):
-        """
-        Lấy tất cả lịch tiêm sắp tới.
-        """
         upcoming_schedules = models.InjectionSchedule.objects.filter(date__gte=datetime.now())
         serializer = serializers.InjectionScheduleSerializer(upcoming_schedules, many=True)
         return Response(serializer.data)
-
 
 class InjectionSiteViewSet(viewsets.ModelViewSet):
     queryset = models.InjectionSite.objects.all()
     serializer_class = serializers.InjectionSiteSerializer
     permission_classes = [IsAdminUser]
 
-
 def chat_view(request):
     return render(request, 'chat/chat.html', {
         'username': request.user.username
     })
 
-
-import firebase_admin
-from firebase_admin import credentials, db
-from django.utils import timezone
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-import os
-
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 key_path = os.path.join(base_dir, 'HeThongTiemChung', 'secure_keys', 'serviceAccountKey.json')
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate('secure_keys/serviceAccountKey.json')  # 🔁 Đổi đường dẫn file JSON
-
+    cred = credentials.Certificate('secure_keys/serviceAccountKey.json')
     firebase_admin.initialize_app(cred, {
         'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
     })
 
-from rest_framework.decorators import api_view
-import requests
+# Danh sách từ khóa cho phép
+ALLOWED_KEYWORDS = [
+    "vắc-xin", "tiêm chủng", "sức khỏe", "phản ứng phụ", "vacxin", "vaccine",
+    "y tế", "bệnh viện", "thuốc", "bác sĩ", "khám bệnh", "điều trị", "dự phòng", "miễn dịch",
+    "tác dụng phụ"
+]
 
-ALLOWED_KEYWORDS = ["vắc-xin", "tiêm chủng", "sức khỏe", "phản ứng phụ", "vacxin", "vaccine", "y tế", "bệnh viện",
-                    "thuốc"]
+# Hàm kiểm tra quyền admin
+def is_admin(user):
+    return user.is_authenticated and user.is_staff
 
+# Hàm hỗ trợ: Logic xử lý AI
+def generate_response(message):
+    message = message.lower().strip()
+    if not any(keyword in message for keyword in ALLOWED_KEYWORDS):
+        return "Chỉ hỗ trợ câu hỏi về vắc-xin, tiêm chủng hoặc sức khỏe."
+    cache_key = f"faq_response_{hashlib.md5(message.encode('utf-8')).hexdigest()}"
+    cached_response = cache.get(cache_key)
+    if cached_response:
+        return cached_response
+    message_tokens = ViTokenizer.tokenize(message).split()
+    faqs = models.Faq.objects.filter(
+        Q(question_keywords__icontains=message_tokens[0]) |
+        Q(question_keywords__icontains=message_tokens[-1] if message_tokens else '')
+    )
+    best_match = None
+    best_score = 0
+    for faq in faqs:
+        keywords = ViTokenizer.tokenize(faq.question_keywords.lower()).split()
+        score = sum(1 for keyword in keywords if keyword in message_tokens)
+        if score > best_score:
+            best_score = score
+            best_match = faq.answer
+    if not best_match:
+        all_keywords = [faq.question_keywords.lower() for faq in models.Faq.objects.all()]
+        close_matches = get_close_matches(message, all_keywords, n=3, cutoff=0.6)
+        if close_matches:
+            best_match = f"Xin lỗi, tôi không hiểu câu hỏi của bạn. Ý bạn có phải là: {', '.join(close_matches)}?"
+    if best_match:
+        cache.set(cache_key, best_match, timeout=3600)
+    return best_match
 
-@api_view(['POST'])
-def check_question(request):
-    """Kiểm tra câu hỏi có hợp lệ không"""
-    question = request.data.get("question", "").lower()
-    if any(keyword in question for keyword in ALLOWED_KEYWORDS):
-        return Response({"allowed": True})
-    return Response({
-        "allowed": False,
-        "message": "Chỉ hỗ trợ câu hỏi về vắc-xin, tiêm chủng hoặc sức khỏe."
-    })
-
-
+# ViewSet cho Chat Messages
 class ChatMessageViewSet(viewsets.ViewSet):
-    """ViewSet cho Chat Messages"""
+    """ViewSet xử lý tin nhắn chat"""
+    permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        """Lấy danh sách tin nhắn của user"""
+        """Lấy danh sách tin nhắn của người dùng"""
         queryset = models.ChatMessage.objects.filter(
             sender=request.user
         ).order_by('timestamp')
@@ -578,92 +556,11 @@ class ChatMessageViewSet(viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-def chat_view(request):
-    """Render trang chat với WebView"""
-    return render(request, 'chat.html')
-
-
+# API endpoint cho AI chat
 @api_view(['POST'])
-def ai_chat(request):
-    """
-    Thay vì gọi API, chúng ta sẽ trả về URL để frontend mở WebView
-    """
-    message = request.data.get('message')
-    if not message:
-        return Response({
-            'detail': 'Tin nhắn không được để trống'
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        # Lưu tin nhắn người dùng
-        user_message = models.ChatMessage.objects.create(
-            sender=request.user,
-            text=message,
-            timestamp=timezone.now(),
-            is_user=True
-        )
-        user_serializer = serializers.ChatMessageSerializer(user_message)
-
-        # Tạo prompt để gửi đến ChatGPT qua WebView
-        formatted_prompt = f"Bạn là chuyên gia y tế về vắc-xin và tiêm chủng. Hãy trả lời câu hỏi sau bằng tiếng Việt một cách chính xác và hữu ích: {message}"
-
-        # Tạo URL ChatGPT với prompt được encode
-        import urllib.parse
-        encoded_prompt = urllib.parse.quote(formatted_prompt)
-        chatgpt_url = f"https://chat.openai.com/?q={encoded_prompt}"
-
-        return Response({
-            'user_message': user_serializer.data,
-            'chatgpt_url': chatgpt_url,
-            'use_webview': True,
-            'prompt': formatted_prompt
-        }, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        print(f"Error in ai_chat: {e}")
-        return Response({
-            'detail': 'Có lỗi xảy ra khi xử lý tin nhắn. Vui lòng thử lại.'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@api_view(['POST'])
-def save_ai_response(request):
-    """Lưu phản hồi từ AI sau khi user copy từ WebView"""
-    ai_response = request.data.get('ai_response')
-    user_message_id = request.data.get('user_message_id')
-
-    if not ai_response:
-        return Response({
-            'detail': 'Phản hồi AI không được để trống'
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        # Lưu phản hồi AI
-        ai_message = models.ChatMessage.objects.create(
-            sender=None,  # AI không có sender
-            text=ai_response,
-            timestamp=timezone.now(),
-            is_user=False
-        )
-        ai_serializer = serializers.ChatMessageSerializer(ai_message)
-
-        return Response({
-            'ai_message': ai_serializer.data,
-            'success': True
-        }, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        print(f"Error saving AI response: {e}")
-        return Response({
-            'detail': 'Có lỗi xảy ra khi lưu phản hồi AI.'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# Alternative: Sử dụng API miễn phí khác
-@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def ai_chat_free_api(request):
-    """Sử dụng API miễn phí thay vì WebView"""
+    """Chat với AI trả lời trực tiếp trong giao diện"""
     message = request.data.get('message')
     if not message:
         return Response({
@@ -671,7 +568,11 @@ def ai_chat_free_api(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Lưu tin nhắn người dùng
+        if not any(keyword in message.lower() for keyword in ALLOWED_KEYWORDS):
+            return Response({
+                'detail': 'Chỉ hỗ trợ câu hỏi về vắc-xin, tiêm chủng hoặc sức khỏe.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         user_message = models.ChatMessage.objects.create(
             sender=request.user,
             text=message,
@@ -680,13 +581,14 @@ def ai_chat_free_api(request):
         )
         user_serializer = serializers.ChatMessageSerializer(user_message)
 
-        # Gọi API miễn phí
-        ai_response_text = call_free_ai_api(message)
-
+        ai_response_text = generate_response(message)
         if not ai_response_text:
-            ai_response_text = "Xin lỗi, tôi không thể trả lời câu hỏi này ngay bây giờ. Vui lòng thử lại sau hoặc sử dụng chế độ WebView."
+            models.UnansweredQuestion.objects.create(
+                question=message,
+                user=request.user
+            )
+            ai_response_text = "Xin lỗi, tôi không hiểu câu hỏi của bạn. Vui lòng thử lại với câu hỏi khác."
 
-        # Lưu phản hồi AI
         ai_message = models.ChatMessage.objects.create(
             sender=None,
             text=ai_response_text,
@@ -695,137 +597,140 @@ def ai_chat_free_api(request):
         )
         ai_serializer = serializers.ChatMessageSerializer(ai_message)
 
+        models.QueryLog.objects.create(
+            user=request.user,
+            question=message,
+            answer=ai_response_text
+        )
+
         return Response({
             'user_message': user_serializer.data,
-            'ai_response': ai_serializer.data
+            'ai_response': ai_serializer.data,
+            'success': True
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
         print(f"Error in ai_chat_free_api: {e}")
         return Response({
-            'detail': 'Có lỗi xảy ra khi xử lý tin nhắn.'
+            'detail': 'Có lỗi xảy ra khi xử lý tin nhắn. Vui lòng thử lại.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-def call_free_ai_api(message):
-    """Gọi các API AI miễn phí"""
-    try:
-        # Option 1: Hugging Face Inference API (miễn phí với rate limit)
-        return call_huggingface_api(message)
-
-        # Option 2: Groq (miễn phí với quota)
-        # return call_groq_free_api(message)
-
-    except Exception as e:
-        print(f"Free AI API Error: {e}")
-        return None
-
-
-def call_huggingface_api(message):
-    """Sử dụng Hugging Face Inference API (miễn phí)"""
-    import requests
-
-    # API endpoint cho model miễn phí
-    api_url = "https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium"
-
-    headers = {
-        "Authorization": "Bearer YOUR_HUGGINGFACE_TOKEN"  # Tạo token miễn phí tại huggingface.co
-    }
-
-    payload = {
-        "inputs": f"Bạn là chuyên gia y tế. Trả lời bằng tiếng Việt: {message}",
-        "parameters": {
-            "max_length": 200,
-            "temperature": 0.7
-        }
-    }
-
-    try:
-        response = requests.post(api_url, headers=headers, json=payload, timeout=30)
-        response.raise_for_status()
-        result = response.json()
-
-        if isinstance(result, list) and len(result) > 0:
-            return result[0].get('generated_text', '').replace(payload["inputs"], '').strip()
-
-        return "Không thể tạo phản hồi từ AI."
-
-    except Exception as e:
-        print(f"Hugging Face API Error: {e}")
-        return None
-
-
-def call_groq_free_api(message):
-    """Sử dụng Groq API (miễn phí với quota hàng ngày)"""
-    import requests
-
-    api_key = "YOUR_GROQ_API_KEY"  # Đăng ký miễn phí tại console.groq.com
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "model": "llama3-8b-8192",
-        "messages": [
-            {
-                "role": "system",
-                "content": "Bạn là chuyên gia y tế về vắc-xin. Trả lời bằng tiếng Việt, chính xác và hữu ích."
-            },
-            {
-                "role": "user",
-                "content": message
-            }
-        ],
-        "max_tokens": 300,
-        "temperature": 0.7
-    }
-
-    try:
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers=headers,
-            json=data,
-            timeout=30
+# Template Views cho quản lý FAQ
+@login_required
+@user_passes_test(is_admin)
+def manage_faqs(request):
+    query = request.GET.get('q', '')
+    faqs = models.Faq.objects.all().order_by('-created_at')
+    if query:
+        faqs = faqs.filter(
+            Q(question_keywords__icontains=query) |
+            Q(answer__icontains=query)
         )
+    paginator = Paginator(faqs, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
-        response.raise_for_status()
-        result = response.json()
+    if request.method == 'POST':
+        form = FaqForm(request.POST)
+        if form.is_valid():
+            faq = form.save(commit=False)
+            faq.created_by = request.user
+            faq.save()
+            messages.success(request, "Thêm FAQ thành công!")
+            return redirect('manage_faqs')
+    else:
+        form = FaqForm()
 
-        return result["choices"][0]["message"]["content"]
+    return render(request, 'manage_faqs.html', {'page_obj': page_obj, 'form': form, 'query': query})
 
-    except Exception as e:
-        print(f"Groq API Error: {e}")
-        return None
+@login_required
+@user_passes_test(is_admin)
+def edit_faq(request, faq_id):
+    faq = get_object_or_404(models.Faq, id=faq_id)
+    if request.method == 'POST':
+        form = FaqForm(request.POST, instance=faq)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Cập nhật FAQ thành công!")
+            return redirect('manage_faqs')
+    else:
+        form = FaqForm(instance=faq)
+    return render(request, 'edit_faq.html', {'form': form, 'faq': faq})
 
+@login_required
+@user_passes_test(is_admin)
+def delete_faq(request, faq_id):
+    faq = get_object_or_404(models.Faq, id=faq_id)
+    if request.method == 'POST':
+        faq.delete()
+        messages.success(request, "Xóa FAQ thành công!")
+        return redirect('manage_faqs')
+    return render(request, 'delete_faq.html', {'faq': faq})
 
-from django.db.models import Count
+@login_required
+@user_passes_test(is_admin)
+def faq_stats(request):
+    total_faqs = models.Faq.objects.count()
+    total_unanswered = models.UnansweredQuestion.objects.count()
+    recent_unanswered = models.UnansweredQuestion.objects.order_by('-created_at')[:5]
+    return render(request, 'faq_stats.html', {
+        'total_faqs': total_faqs,
+        'total_unanswered': total_unanswered,
+        'recent_unanswered': recent_unanswered,
+    })
 
+@login_required
+@user_passes_test(is_admin)
+def unanswered_questions(request):
+    query = request.GET.get('q', '')
+    questions = models.UnansweredQuestion.objects.all().order_by('-created_at')
+    if query:
+        questions = questions.filter(question__icontains=query)
+    paginator = Paginator(questions, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'unanswered_questions.html', {'page_obj': page_obj, 'query': query})
+
+@login_required
+@user_passes_test(is_admin)
+def export_faqs(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="faqs.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['Từ khóa', 'Câu trả lời', 'Người tạo', 'Thời gian tạo'])
+    faqs = models.Faq.objects.all()
+    for faq in faqs:
+        writer.writerow([faq.question_keywords, faq.answer, faq.created_by, faq.created_at])
+    return response
+
+@login_required
+@user_passes_test(is_admin)
+def export_unanswered(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="unanswered_questions.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['Câu hỏi', 'Người dùng', 'Thời gian'])
+    questions = models.UnansweredQuestion.objects.all()
+    for question in questions:
+        writer.writerow([question.question, question.user, question.created_at])
+    return response
 
 class StatsAPIView(APIView):
     def get(self, request):
         total_vaccinated = VaccinationRecord.objects.values('user').distinct().count()
-
         total_appointments = Appointment.objects.count()
-
         completed_appointments = Appointment.objects.filter(is_inoculated=True).count()
-
         completion_rate = (completed_appointments / total_appointments) if total_appointments > 0 else 0
-
         popular_vaccines_qs = VaccinationRecord.objects.values('vaccine__name') \
                                   .annotate(count=Count('id')) \
-                                  .order_by('-count')[:3]  # Lấy top 3
-
+                                  .order_by('-count')[:3]
         popular_vaccines = [
             {"name": item['vaccine__name'], "count": item['count']}
             for item in popular_vaccines_qs
         ]
-
         data = {
             "total_vaccinated": total_vaccinated,
             "completion_rate": round(completion_rate * 100, 2),
             "popular_vaccines": popular_vaccines,
         }
-
         return Response(data)

@@ -7,7 +7,6 @@ router = DefaultRouter()
 router.register('vaccines', views.VaccineViewSet)
 router.register(r'users', views.UserViewSet)
 router.register(r'vaccine-types', views.VaccineTypeViewSet, basename='vaccine-type')
-router.register('users', views.UserViewSet, basename='register')
 router.register('appointment', views.AppointmentViewSet, basename='appointment')
 router.register('appointments', views.AppointmentAdminViewSet, basename='appointments')
 router.register('records', views.VaccinationRecordViewSet, basename='records')
@@ -20,6 +19,12 @@ urlpatterns = [
     path('', views.index, name="index"),  # URL gốc trỏ tới index (nếu cần)
     path('chat/', views.chat_view, name='chat'),
     path('stats/', views.StatsAPIView.as_view(), name='stats-api'),
-    path('ai-chat/', views.ai_chat, name='ai-chat'),
-    path('check-question/', views.check_question, name='check-question'),
+    path('ai-chat/', views.ai_chat_free_api, name='ai-chat'),
+    path('manage-faqs/', views.manage_faqs, name='manage_faqs'),
+    path('edit-faq/<int:faq_id>/', views.edit_faq, name='edit_faq'),
+    path('delete-faq/<int:faq_id>/', views.delete_faq, name='delete_faq'),
+    path('faq-stats/', views.faq_stats, name='faq_stats'),
+    path('unanswered-questions/', views.unanswered_questions, name='unanswered_questions'),
+    path('export-faqs/', views.export_faqs, name='export_faqs'),
+    path('export-unanswered/', views.export_unanswered, name='export_unanswered'),
 ]
