@@ -17,34 +17,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
 
 const ChatScreen = ({ navigation }) => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]); // Tin nhắn trong phiên hiện tại
   const [inputText, setInputText] = useState("");
   const [showPrompts, setShowPrompts] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef(null);
 
-  useEffect(() => {
-    loadChatHistory();
-  }, []);
-
-  const loadChatHistory = async () => {
-    try {
-      setIsLoading(true);
-      const token = await AsyncStorage.getItem("token");
-      const response = await authApis(token).get(endpoints["chatMessages"]);
-      
-      if (response.data && Array.isArray(response.data)) {
-        setMessages(response.data);
-        if (response.data.length > 0) {
-          setShowPrompts(false);
-        }
-      }
-    } catch (error) {
-      console.error("Lỗi khi tải lịch sử tin nhắn:", error);
-      Alert.alert("Lỗi", "Không thể tải lịch sử tin nhắn. Vui lòng thử lại sau!");
-    } finally {
-      setIsLoading(false);
+  const scrollToBottom = () => {
+    if (flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }, 100);
     }
   };
 
@@ -65,53 +48,101 @@ const ChatScreen = ({ navigation }) => {
         text: trimmedText,
         is_user: true,
         timestamp: new Date().toISOString(),
-        sender: null
       };
       
       setMessages(prevMessages => [...prevMessages, userMessage]);
+      scrollToBottom();
 
       // Gọi API để lấy phản hồi từ AI
       const response = await authApis(token).post(endpoints["aiChat"], {
         message: trimmedText,
       });
 
-      // Kiểm tra dữ liệu trả về
-      if (response.status === 200 && response.data && response.data.success) {
-        const { user_message, ai_response } = response.data;
-        if (user_message && ai_response) {
+      let aiMessage;
+
+      // Xử lý phản hồi từ API
+      if (response.status === 200) {
+        if (response.data.success) {
+          const { user_message, ai_response, suggestions, navigation } = response.data;
+          
           // Cập nhật tin nhắn với dữ liệu từ server
+          aiMessage = {
+            id: `ai-${Date.now()}`,
+            text: ai_response,
+            suggestions: suggestions || [],
+            navigation: navigation || null,
+            is_user: false,
+            timestamp: new Date().toISOString(),
+          };
+          
           setMessages(prevMessages => {
             const filteredMessages = prevMessages.filter(msg => msg.id !== userMessage.id);
             return [
               ...filteredMessages,
-              user_message,
-              ai_response,
+              { ...userMessage, text: user_message }, // Cập nhật user_message
+              aiMessage,
             ];
           });
+        } else if (response.data.suggestions) {
+          // Hiển thị gợi ý nếu có
+          aiMessage = {
+            id: `ai-${Date.now()}`,
+            text: response.data.message,
+            suggestions: response.data.suggestions,
+            navigation: response.data.navigation || null,
+            is_user: false,
+            timestamp: new Date().toISOString(),
+          };
+          
+          setMessages(prevMessages => [...prevMessages, aiMessage]);
         } else {
-          throw new Error("Dữ liệu trả về không đúng định dạng.");
+          // Hiển thị lỗi từ backend
+          aiMessage = {
+            id: `ai-${Date.now()}`,
+            text: response.data.detail || "Có lỗi xảy ra, vui lòng thử lại sau!",
+            navigation: response.data.navigation || null,
+            is_user: false,
+            timestamp: new Date().toISOString(),
+          };
+          
+          setMessages(prevMessages => [...prevMessages, aiMessage]);
         }
       } else {
-        throw new Error(response.data?.detail || "Phản hồi API không thành công.");
+        throw new Error("Phản hồi API không thành công.");
       }
 
     } catch (error) {
       console.error("Lỗi khi gửi tin nhắn:", error);
       
-      // Loại bỏ tin nhắn user tạm thời nếu có lỗi
-      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== userMessage.id));
-
-      // Hiển thị thông báo lỗi bằng Alert
-      const errorDetail = error.response?.data?.detail || error.message || "Có lỗi xảy ra, vui lòng thử lại sau!";
-      Alert.alert("Lỗi", errorDetail, [{ text: "OK" }]);
+      // Thêm tin nhắn lỗi từ AI
+      const aiMessage = {
+        id: `ai-${Date.now()}`,
+        text: error.response?.data?.detail || "Có lỗi xảy ra, vui lòng thử lại sau!",
+        is_user: false,
+        timestamp: new Date().toISOString(),
+      };
+      
+      setMessages(prevMessages => [...prevMessages, aiMessage]);
     } finally {
       setIsTyping(false);
+      scrollToBottom();
     }
   };
 
   const handlePromptPress = (promptText) => {
     setInputText(promptText);
     setShowPrompts(false);
+  };
+
+  const handleSuggestionPress = (suggestion) => {
+    setInputText(suggestion);
+    sendMessage();
+  };
+
+  const handleNavigationPress = (screen) => {
+    if (screen) {
+      navigation.navigate(screen);
+    }
   };
 
   const renderMessage = ({ item }) => (
@@ -127,6 +158,33 @@ const ChatScreen = ({ navigation }) => {
       ]}>
         {item.text}
       </Text>
+      
+      {/* Hiển thị nút chuyển hướng nếu có navigation */}
+      {item.navigation && (
+        <TouchableOpacity
+          style={styles.navigationButton}
+          onPress={() => handleNavigationPress(item.navigation)}
+        >
+          <Text style={styles.navigationButtonText}>Chuyển đến {item.navigation}</Text>
+        </TouchableOpacity>
+      )}
+      
+      {/* Hiển thị gợi ý nếu có */}
+      {item.suggestions && item.suggestions.length > 0 && (
+        <View style={styles.suggestionsContainer}>
+          <Text style={styles.suggestionsTitle}>Gợi ý:</Text>
+          {item.suggestions.map((suggestion, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.suggestionItem}
+              onPress={() => handleSuggestionPress(suggestion)}
+            >
+              <Text style={styles.suggestionText}>{suggestion}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      
       <Text style={[
         styles.timestamp,
         item.is_user ? styles.userTimestamp : styles.aiTimestamp
@@ -138,15 +196,6 @@ const ChatScreen = ({ navigation }) => {
       </Text>
     </View>
   );
-
-  // Scroll to bottom when new messages are added
-  useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [messages]);
 
   return (
     <KeyboardAvoidingView
@@ -167,30 +216,18 @@ const ChatScreen = ({ navigation }) => {
           <Text style={styles.headerSubtitle}>Chuyên gia vắc-xin & sức khỏe</Text>
         </View>
         
-        <TouchableOpacity 
-          onPress={() => loadChatHistory()}
-          style={styles.refreshButton}
-        >
-          <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.refreshButtonPlaceholder} />
       </View>
 
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0c5776" />
-          <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id.toString()}
-          style={styles.chatList}
-          contentContainerStyle={styles.chatListContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item.id}
+        style={styles.chatList}
+        contentContainerStyle={styles.chatListContent}
+        showsVerticalScrollIndicator={false}
+      />
 
       {isTyping && (
         <View style={styles.typingContainer}>
@@ -235,9 +272,9 @@ const ChatScreen = ({ navigation }) => {
           
           <TouchableOpacity 
             style={styles.promptItem}
-            onPress={() => handlePromptPress("Lịch tiêm chủng cho trẻ em từ 0-18 tuổi như thế nào?")}
+            onPress={() => handlePromptPress("Lịch tiêm chủng cho trẻ em từ 0-18 tháng như thế nào?")}
           >
-            <Text style={styles.promptText}>🍼 Lịch tiêm chủng cho trẻ em từ 0-18 tuổi như thế nào?</Text>
+            <Text style={styles.promptText}>🍼 Lịch tiêm chủng cho trẻ em từ 0-18 tháng như thế nào?</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -297,18 +334,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  refreshButton: {
-    padding: 8,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 10,
-    color: "#666",
-    fontSize: 16,
+  refreshButtonPlaceholder: {
+    width: 40,
   },
   chatList: {
     flex: 1,
@@ -348,6 +375,18 @@ const styles = StyleSheet.create({
   },
   aiMessageText: {
     color: "#333",
+  },
+  navigationButton: {
+    marginTop: 10,
+    backgroundColor: "#0c5776",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  navigationButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
   },
   timestamp: {
     fontSize: 11,
@@ -440,6 +479,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
     lineHeight: 20,
+  },
+  suggestionsContainer: {
+    marginTop: 10,
+  },
+  suggestionsTitle: {
+    fontSize: 14,
+    color: "#0c5776",
+    fontWeight: "500",
+    marginBottom: 5,
+  },
+  suggestionItem: {
+    backgroundColor: "#f8f9fa",
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: "#e1e8ed",
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: "#333",
   },
 });
 

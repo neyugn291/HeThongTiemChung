@@ -493,49 +493,121 @@ if not firebase_admin._apps:
         'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
     })
 
-# Danh sách từ khóa cho phép
-ALLOWED_KEYWORDS = [
-    "vắc-xin", "tiêm chủng", "sức khỏe", "phản ứng phụ", "vacxin", "vaccine",
-    "y tế", "bệnh viện", "thuốc", "bác sĩ", "khám bệnh", "điều trị", "dự phòng", "miễn dịch",
-    "tác dụng phụ"
-]
+# Danh sách các chức năng của ứng dụng và màn hình tương ứng
+APP_FUNCTIONS = {
+    "đặt lịch hẹn": {
+        "keywords": ["đặt lịch tiêm", "đặt lịch", "lịch hẹn"],
+        "screen": "BookingAppointment",
+        "message": "Để đặt lịch tiêm, bạn có thể sử dụng chức năng Đặt lịch hẹn."
+    },
+    "tra cứu lịch sử tiêm": {
+        "keywords": ["lịch sử tiêm", "lịch sử", "tiêm chủng"],
+        "screen": "RecordSearch",
+        "message": "Để xem lịch sử tiêm, bạn có thể sử dụng chức năng Tra cứu lịch sử tiêm."
+    },
+    "tra cứu lịch tiêm": {
+        "keywords": ["thông tin lịch tiêm", "tra cứu lịch tiêm", "tìm lịch tiêm"],
+        "screen": "InjectionSearch",
+        "message": "Để xem thông tin lịch tiêm, bạn có thể sử dụng chức năng Tra cứu lịch tiêm."
+    },
+    "tải giấy chứng nhận": {
+        "keywords": ["giấy chứng nhận", "chứng nhận tiêm", "tải về chứng nhận"],
+        "screen": "DownloadCertificate",
+        "message": "Để xem và tải về giấy chứng nhận, bạn có thể sử dụng chức năng Tải giấy chứng nhận."
+    },
+    "nhắc lịch tiêm": {
+        "keywords": ["nhắc hẹn", "nhận thông báo", "nhắc email", "nhắc lịch tiêm"],
+        "screen": "Reminders",
+        "message": "Để bật thông báo lịch tiêm qua email, bạn có thể sử dụng chức năng Nhắc lịch tiêm."
+    }
+}
+
 
 # Hàm kiểm tra quyền admin
 def is_admin(user):
     return user.is_authenticated and user.is_staff
 
+
 # Hàm hỗ trợ: Logic xử lý AI
 def generate_response(message):
     message = message.lower().strip()
-    if not any(keyword in message for keyword in ALLOWED_KEYWORDS):
-        return "Chỉ hỗ trợ câu hỏi về vắc-xin, tiêm chủng hoặc sức khỏe."
+
+    # Kiểm tra cache
     cache_key = f"faq_response_{hashlib.md5(message.encode('utf-8')).hexdigest()}"
     cached_response = cache.get(cache_key)
     if cached_response:
         return cached_response
-    message_tokens = ViTokenizer.tokenize(message).split()
-    faqs = models.Faq.objects.filter(
-        Q(question_keywords__icontains=message_tokens[0]) |
-        Q(question_keywords__icontains=message_tokens[-1] if message_tokens else '')
-    )
-    best_match = None
-    best_score = 0
-    for faq in faqs:
-        keywords = ViTokenizer.tokenize(faq.question_keywords.lower()).split()
-        score = sum(1 for keyword in keywords if keyword in message_tokens)
-        if score > best_score:
-            best_score = score
-            best_match = faq.answer
-    if not best_match:
-        all_keywords = [faq.question_keywords.lower() for faq in models.Faq.objects.all()]
-        close_matches = get_close_matches(message, all_keywords, n=3, cutoff=0.6)
-        if close_matches:
-            best_match = f"Xin lỗi, tôi không hiểu câu hỏi của bạn. Ý bạn có phải là: {', '.join(close_matches)}?"
-    if best_match:
-        cache.set(cache_key, best_match, timeout=3600)
-    return best_match
 
-# ViewSet cho Chat Messages
+    try:
+        # Tokenize câu hỏi
+        message_tokens = ViTokenizer.tokenize(message).split()
+
+        # Kiểm tra xem câu hỏi có liên quan đến chức năng của ứng dụng không
+        for function, info in APP_FUNCTIONS.items():
+            if any(keyword in message for keyword in info["keywords"]):
+                return {
+                    "answer": f"{info['message']} Bạn có muốn chuyển đến màn hình {function.title()} không?",
+                    "navigation": info["screen"],
+                    "suggestions": []  # Không cần gợi ý thêm vì đã có câu trả lời cụ thể
+                }
+
+        # Tìm FAQ khớp với từ khóa đầu hoặc cuối
+        faqs = models.Faq.objects.filter(
+            Q(question_keywords__icontains=message_tokens[0]) |
+            Q(question_keywords__icontains=message_tokens[-1] if message_tokens else '')
+        )
+
+        best_match = None
+        best_score = 0
+        for faq in faqs:
+            keywords = ViTokenizer.tokenize(faq.question_keywords.lower()).split()
+            score = sum(1 for keyword in keywords if keyword in message_tokens)
+            if score > best_score:
+                best_score = score
+                best_match = faq.answer
+
+        # Lấy tất cả từ khóa từ bảng Faq
+        all_keywords = [keyword for faq in models.Faq.objects.all() for keyword in
+                        ViTokenizer.tokenize(faq.question_keywords.lower()).split()]
+
+        # Tìm gợi ý từ khóa gần đúng cho từng token trong câu hỏi
+        suggestions = set()
+        for token in message_tokens:
+            close_matches = get_close_matches(token, all_keywords, n=3, cutoff=0.5)
+            suggestions.update(close_matches)
+
+        # Nếu không có gợi ý từ khóa, tìm gợi ý câu hỏi gần đúng
+        if not suggestions:
+            all_questions = [faq.question_keywords.lower() for faq in models.Faq.objects.all()]
+            close_questions = get_close_matches(message, all_questions, n=3, cutoff=0.5)
+            suggestions.update(close_questions)
+
+        # Nếu không tìm thấy câu trả lời chính xác
+        if not best_match:
+            if suggestions:
+                return {
+                    "message": "Xin lỗi, tôi không hiểu câu hỏi của bạn.",
+                    "suggestions": list(suggestions)[:3]  # Giới hạn 3 gợi ý
+                }
+            else:
+                return "Xin lỗi, tôi không hiểu câu hỏi của bạn. Vui lòng thử lại với câu hỏi khác."
+
+        # Lưu vào cache
+        cache.set(cache_key, best_match, timeout=3600)
+
+        # Trả về câu trả lời và gợi ý (nếu có)
+        return {
+            "answer": best_match,
+            "suggestions": list(suggestions)[:3] if suggestions else [],
+            "navigation": None  # Không có chuyển hướng nếu là câu hỏi FAQ
+        }
+
+    except Exception as e:
+        print(f"Error in generate_response: {e}")
+        return "Câu hỏi không hợp lệ. Vui lòng thử lại với câu hỏi khác."
+
+
+# ViewSet cho Chat Messages (giữ nguyên nhưng không sử dụng trong ai_chat_free_api)
 class ChatMessageViewSet(viewsets.ViewSet):
     """ViewSet xử lý tin nhắn chat"""
     permission_classes = [IsAuthenticated]
@@ -556,6 +628,7 @@ class ChatMessageViewSet(viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 # API endpoint cho AI chat
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -568,54 +641,84 @@ def ai_chat_free_api(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        if not any(keyword in message.lower() for keyword in ALLOWED_KEYWORDS):
-            return Response({
-                'detail': 'Chỉ hỗ trợ câu hỏi về vắc-xin, tiêm chủng hoặc sức khỏe.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Gọi hàm generate_response để xử lý câu hỏi
+        response = generate_response(message)
 
-        user_message = models.ChatMessage.objects.create(
-            sender=request.user,
-            text=message,
-            timestamp=timezone.now(),
-            is_user=True
-        )
-        user_serializer = serializers.ChatMessageSerializer(user_message)
-
-        ai_response_text = generate_response(message)
-        if not ai_response_text:
+        # Nếu response là một dict với "message" (chứa gợi ý), trả về gợi ý
+        if isinstance(response, dict) and "message" in response:
+            # Lưu câu hỏi không có câu trả lời vào UnansweredQuestion
             models.UnansweredQuestion.objects.create(
                 question=message,
                 user=request.user
             )
-            ai_response_text = "Xin lỗi, tôi không hiểu câu hỏi của bạn. Vui lòng thử lại với câu hỏi khác."
+            # Lưu vào QueryLog
+            models.QueryLog.objects.create(
+                user=request.user,
+                question=message,
+                answer=response['message']
+            )
+            return Response({
+                'message': response['message'],
+                'suggestions': response['suggestions'],
+                'success': False,
+                'navigation': None
+            }, status=status.HTTP_200_OK)
 
-        ai_message = models.ChatMessage.objects.create(
-            sender=None,
-            text=ai_response_text,
-            timestamp=timezone.now(),
-            is_user=False
-        )
-        ai_serializer = serializers.ChatMessageSerializer(ai_message)
+        # Nếu response là một dict với "answer" (câu trả lời và gợi ý)
+        if isinstance(response, dict) and "answer" in response:
+            # Lưu vào QueryLog
+            models.QueryLog.objects.create(
+                user=request.user,
+                question=message,
+                answer=response['answer']
+            )
+            return Response({
+                'user_message': message,
+                'ai_response': response['answer'],
+                'suggestions': response['suggestions'],
+                'navigation': response.get('navigation', None),
+                'success': True
+            }, status=status.HTTP_200_OK)
 
+        # Nếu không có câu trả lời, lưu câu hỏi vào UnansweredQuestion
+        if response == "Xin lỗi, tôi không hiểu câu hỏi của bạn. Vui lòng thử lại với câu hỏi khác.":
+            models.UnansweredQuestion.objects.create(
+                question=message,
+                user=request.user
+            )
+
+        # Lưu vào QueryLog
         models.QueryLog.objects.create(
             user=request.user,
             question=message,
-            answer=ai_response_text
+            answer=response
         )
 
+        # Trả về câu hỏi và câu trả lời (không lưu vào ChatMessage)
         return Response({
-            'user_message': user_serializer.data,
-            'ai_response': ai_serializer.data,
+            'user_message': message,
+            'ai_response': response,
+            'suggestions': [],
+            'navigation': None,
             'success': True
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
         print(f"Error in ai_chat_free_api: {e}")
+        # Lưu vào QueryLog cho trường hợp lỗi
+        models.QueryLog.objects.create(
+            user=request.user,
+            question=message if 'message' in locals() else "Không xác định",
+            answer="Câu hỏi không hợp lệ. Vui lòng thử lại với câu hỏi khác."
+        )
         return Response({
-            'detail': 'Có lỗi xảy ra khi xử lý tin nhắn. Vui lòng thử lại.'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            'detail': 'Câu hỏi không hợp lệ. Vui lòng thử lại với câu hỏi khác.',
+            'success': False,
+            'navigation': None
+        }, status=status.HTTP_200_OK)
 
-# Template Views cho quản lý FAQ
+
+# Template Views cho quản lý FAQ (giữ nguyên)
 @login_required
 @user_passes_test(is_admin)
 def manage_faqs(request):
@@ -643,6 +746,7 @@ def manage_faqs(request):
 
     return render(request, 'manage_faqs.html', {'page_obj': page_obj, 'form': form, 'query': query})
 
+
 @login_required
 @user_passes_test(is_admin)
 def edit_faq(request, faq_id):
@@ -657,6 +761,7 @@ def edit_faq(request, faq_id):
         form = FaqForm(instance=faq)
     return render(request, 'edit_faq.html', {'form': form, 'faq': faq})
 
+
 @login_required
 @user_passes_test(is_admin)
 def delete_faq(request, faq_id):
@@ -666,6 +771,7 @@ def delete_faq(request, faq_id):
         messages.success(request, "Xóa FAQ thành công!")
         return redirect('manage_faqs')
     return render(request, 'delete_faq.html', {'faq': faq})
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -679,6 +785,7 @@ def faq_stats(request):
         'recent_unanswered': recent_unanswered,
     })
 
+
 @login_required
 @user_passes_test(is_admin)
 def unanswered_questions(request):
@@ -691,6 +798,7 @@ def unanswered_questions(request):
     page_obj = paginator.get_page(page_number)
     return render(request, 'unanswered_questions.html', {'page_obj': page_obj, 'query': query})
 
+
 @login_required
 @user_passes_test(is_admin)
 def export_faqs(request):
@@ -702,6 +810,7 @@ def export_faqs(request):
     for faq in faqs:
         writer.writerow([faq.question_keywords, faq.answer, faq.created_by, faq.created_at])
     return response
+
 
 @login_required
 @user_passes_test(is_admin)
