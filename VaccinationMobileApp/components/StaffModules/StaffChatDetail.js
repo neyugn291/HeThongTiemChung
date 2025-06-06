@@ -1,16 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { database, ref, onValue, push, set, update } from "../../components/Home/firebase"; // Import các hàm modular
+import { database, ref, onValue, push, set, update } from "../../components/Home/firebase";
 
 const StaffChatDetail = ({ route, navigation }) => {
   const { userId, userName } = route.params;

@@ -4,8 +4,7 @@ from datetime import date, datetime
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
-from .models import Vaccine, VaccineType, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite, \
-    ChatMessage
+from .models import Vaccine, VaccineType, User, Appointment, VaccinationRecord, InjectionSchedule, InjectionSite
 
 
 class VaccineTypeSerializer(serializers.ModelSerializer):
@@ -73,8 +72,8 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def validate_phone_number(self, value):
-        if value and not re.match(r'^\d{10,15}$', value):
-            raise serializers.ValidationError("Số điện thoại phải chứa 10-15 chữ số.")
+        if value and not re.match(r'^\d{10,11}$', value):
+            raise serializers.ValidationError("Số điện thoại phải chứa 10-11 chữ số.")
         return value
 
     def validate_citizen_id(self, value):
@@ -129,7 +128,7 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
     class Meta:
-        model = User  # Hoặc CustomUser nếu có
+        model = User
         fields = ['id', 'username', 'email', 'password', 'avatar', 'is_superuser', 'is_staff', 'is_active',
                   'first_name', 'last_name', 'citizen_id', 'phone_number', 'birth_date', 'gender']
         extra_kwargs = {'password': {'write_only': True},
@@ -206,11 +205,3 @@ class InjectionSiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = InjectionSite
         fields = ['id', 'name', 'address', 'phone']
-
-
-class ChatMessageSerializer(serializers.ModelSerializer):
-    sender = serializers.StringRelatedField(allow_null=True)
-
-    class Meta:
-        model = ChatMessage
-        fields = ['id', 'sender', 'text', 'timestamp', 'is_user']

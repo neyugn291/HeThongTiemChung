@@ -99,12 +99,6 @@ class InjectionSiteAdmin(admin.ModelAdmin):
 
 
 from django.contrib import admin
-from .models import ChatMessage
-
-
-class ChatMessageAdmin(admin.ModelAdmin):
-    list_display = ('sender', 'text', 'timestamp')
-    search_fields = ('sender', 'text')
 
 
 class FaqAdmin(admin.ModelAdmin):
@@ -129,6 +123,5 @@ admin_site.register(Appointment)
 admin_site.register(VaccineType, VaccineTypeAdmin)
 admin_site.register(Vaccine, VaccineAdmin)
 
-admin_site.register(ChatMessage, ChatMessageAdmin)
 admin_site.register(Faq, FaqAdmin)
 admin_site.register(UnansweredQuestion, UnansweredQuestionAdmin)

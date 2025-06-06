@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Switch,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Switch } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Apis, { endpoints } from "../../configs/Apis";
 
@@ -194,7 +186,6 @@ const AddAccount = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Phân quyền */}
         <Text style={styles.label}>Phân quyền</Text>
         <View style={styles.roleContainer}>
           <TouchableOpacity
@@ -220,7 +211,6 @@ const AddAccount = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Trạng thái hoạt động với Switch ngang hàng */}
         <View style={styles.toggleContainer}>
           <Text style={styles.label}>Trạng thái hoạt động</Text>
           <Switch

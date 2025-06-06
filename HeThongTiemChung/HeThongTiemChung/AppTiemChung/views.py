@@ -1,39 +1,130 @@
-from datetime import datetime
 import hashlib
-from django.conf import settings
-from django.core.mail import send_mail
-from django.http import HttpResponse, FileResponse,JsonResponse
-from rest_framework import viewsets, generics, parsers, status
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Vaccine, User, Appointment, VaccinationRecord
-from .serializers import UserSerializer
-from .permissions import IsAdminUser, IsStaffUser
+import io
+import os
+from datetime import datetime
+from difflib import get_close_matches
+
+import firebase_admin
 from AppTiemChung import models
 from AppTiemChung import serializers
-import io
-from reportlab.pdfgen import canvas
-from django.db.models import Count
-from django.utils import timezone
-import os
-from django.core.cache import cache
-from pyvi import ViTokenizer
-from difflib import get_close_matches
-from django.db.models import Q
-import firebase_admin
-from firebase_admin import credentials, db
-from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.db.models import Count
+from django.db.models import Q
+from django.http import HttpResponse, FileResponse, JsonResponse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from firebase_admin import credentials, db
+from pyvi import ViTokenizer
+from reportlab.pdfgen import canvas
+from rest_framework import viewsets, generics, parsers, status
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .models import Vaccine, User, Appointment, VaccinationRecord
+from .permissions import IsAdminUser, IsStaffUser
+from .serializers import UserSerializer
+
 
 def index(request):
     return HttpResponse("Vaccination App")
+
+
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = User.objects.filter(is_active=True)
+    serializer_class = UserSerializer
+    parser_classes = [parsers.MultiPartParser]
+
+    def get_permissions(self):
+        if self.action in ['current_user']:
+            return [IsAuthenticated]
+        elif self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]
+        return [AllowAny()]
+
+    @action(methods=['get', 'patch'], url_path='current-user', detail=False,
+            permission_classes=[IsAuthenticated])
+    def get_current_user(self, request):
+        u = request.user
+        if not u.is_authenticated:
+            return Response({'detail': 'Bạn chưa đăng nhập'}, status=status.HTTP_401_UNAUTHORIZED)
+        if request.method == 'PATCH':
+            serializer = UserSerializer(u, data=request.data, partial=True)
+            if serializer.is_valid():
+                validated_data = serializer.validated_data
+                for k, v in request.data.items():
+                    if k == 'password':
+                        u.set_password(v)
+                    elif k == 'avatar':
+                        if v:
+                            u.avatar = v
+                    elif k in ['gender', 'birth_date', 'citizen_id', 'phone_number', 'first_name', 'last_name']:
+                        setattr(u, k, v)
+                u.save()
+                return Response({"message": "Cập nhật thành công!"}, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(UserSerializer(u).data)
+
+    @action(methods=['get'], url_path='current-user/history', detail=False,
+            permission_classes=[IsAuthenticated])
+    def history(self, request):
+        user = request.user
+        user_appointments = models.Appointment.objects.filter(user=user)
+        serialized = serializers.AppointmentSerializer(user_appointments, many=True)
+        return Response(serialized.data)
+
+    def create(self, request):
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request):
+        users = models.User.objects.all()
+        serializer = serializers.UserSerializer(users, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        try:
+            user = models.User.objects.get(pk=pk)
+        except models.User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+
+    def update(self, request, pk=None):
+        try:
+            user = models.User.objects.get(pk=pk)
+        except models.User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({"message": "User updated successfully!"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk)
+
+    def destroy(self, request, pk=None):
+        try:
+            user = models.User.objects.get(pk=pk)
+        except models.User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class VaccineViewSet(viewsets.ModelViewSet):
     queryset = Vaccine.objects.all()
     serializer_class = serializers.VaccineSerializer
     permission_classes = [IsAuthenticated]
+
 
 class VaccineTypeViewSet(viewsets.ViewSet):
     serializer_class = serializers.VaccineTypeSerializer
@@ -80,6 +171,7 @@ class VaccineTypeViewSet(viewsets.ViewSet):
 
         vaccine_type.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class AppointmentViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
@@ -140,6 +232,7 @@ class AppointmentViewSet(viewsets.ViewSet):
         appointment.reminder_enabled = reminder_value
         appointment.save()
         return Response({'message': f'Reminder status updated to {reminder_value}.'})
+
 
 class AppointmentAdminViewSet(viewsets.ViewSet):
     serializer_class = serializers.AppointmentSerializer
@@ -206,90 +299,6 @@ class AppointmentAdminViewSet(viewsets.ViewSet):
         appointment.save()
         return Response({'message': f'Appointment inoculated status updated to {inoculated_value}.'})
 
-class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
-    queryset = User.objects.filter(is_active=True)
-    serializer_class = UserSerializer
-    parser_classes = [parsers.MultiPartParser]
-
-    @action(methods=['get'], url_path='current-user/history', detail=False,
-            permission_classes=[IsAuthenticated])
-    def history(self, request):
-        user = request.user
-        user_appointments = models.Appointment.objects.filter(user=user)
-        serialized = serializers.AppointmentSerializer(user_appointments, many=True)
-        return Response(serialized.data)
-
-    def get_permissions(self):
-        if self.action in ['current_user']:
-            return [IsAuthenticated]
-        elif self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
-            return [IsAdminUser()]
-        return [AllowAny()]
-
-    def list(self, request):
-        users = models.User.objects.all()
-        serializer = serializers.UserSerializer(users, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        try:
-            user = models.User.objects.get(pk=pk)
-        except models.User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
-
-    def create(self, request):
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def update(self, request, pk=None):
-        try:
-            user = models.User.objects.get(pk=pk)
-        except models.User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = UserSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            user = serializer.save()
-            return Response({"message": "User updated successfully!"}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def partial_update(self, request, pk=None):
-        return self.update(request, pk)
-
-    def destroy(self, request, pk=None):
-        try:
-            user = models.User.objects.get(pk=pk)
-        except models.User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(methods=['get', 'patch'], url_path='current-user', detail=False,
-            permission_classes=[IsAuthenticated])
-    def get_current_user(self, request):
-        u = request.user
-        if not u.is_authenticated:
-            return Response({'detail': 'Bạn chưa đăng nhập'}, status=status.HTTP_401_UNAUTHORIZED)
-        if request.method == 'PATCH':
-            serializer = UserSerializer(u, data=request.data, partial=True)
-            if serializer.is_valid():
-                validated_data = serializer.validated_data
-                for k, v in request.data.items():
-                    if k == 'password':
-                        u.set_password(v)
-                    elif k == 'avatar':
-                        if v:
-                            u.avatar = v
-                    elif k in ['gender', 'birth_date', 'citizen_id', 'phone_number', 'first_name', 'last_name']:
-                        setattr(u, k, v)
-                u.save()
-                return Response({"message": "User updated successfully!"}, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(UserSerializer(u).data)
 
 class VaccinationRecordViewSet(viewsets.ViewSet):
     serializer_class = serializers.VaccinationRecordSerializer
@@ -391,6 +400,7 @@ class VaccinationRecordViewSet(viewsets.ViewSet):
         record.save()
         return Response({'message': 'Health note updated successfully', 'health_note': record.health_note})
 
+
 class InjectionScheduleViewSet(viewsets.ViewSet):
     queryset = models.InjectionSchedule.objects.all()
     serializer_class = serializers.InjectionScheduleSerializer
@@ -470,10 +480,12 @@ class InjectionScheduleViewSet(viewsets.ViewSet):
         serializer = serializers.InjectionScheduleSerializer(upcoming_schedules, many=True)
         return Response(serializer.data)
 
+
 class InjectionSiteViewSet(viewsets.ModelViewSet):
     queryset = models.InjectionSite.objects.all()
     serializer_class = serializers.InjectionSiteSerializer
     permission_classes = [IsAdminUser]
+
 
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 key_path = os.path.join(base_dir, 'HeThongTiemChung', 'secure_keys', 'serviceAccountKey.json')
@@ -483,6 +495,7 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred, {
         'databaseURL': 'https://vaccinationapp-cb597-default-rtdb.firebaseio.com'
     })
+
 
 @csrf_exempt
 @login_required
@@ -516,6 +529,7 @@ def send_message(request):
             return JsonResponse({'success': False, 'detail': str(e)})
     return JsonResponse({'success': False, 'detail': 'Phương thức không hợp lệ'})
 
+
 @csrf_exempt
 @login_required
 def get_staff_chats(request):
@@ -538,7 +552,7 @@ def get_staff_chats(request):
         except Exception as e:
             return JsonResponse({'success': False, 'detail': str(e)})
 
-# Danh sách các chức năng của ứng dụng và màn hình tương ứng
+
 APP_FUNCTIONS = {
     "đặt lịch hẹn": {
         "keywords": ["đặt lịch tiêm", "đặt lịch", "lịch hẹn"],
@@ -567,7 +581,7 @@ APP_FUNCTIONS = {
     }
 }
 
-# Hàm hỗ trợ: Logic xử lý AI
+
 def generate_response(message):
     message = message.lower().strip()
 
@@ -578,10 +592,8 @@ def generate_response(message):
         return cached_response
 
     try:
-        # Tokenize câu hỏi
         message_tokens = ViTokenizer.tokenize(message).split()
 
-        # Kiểm tra xem câu hỏi có liên quan đến chức năng của ứng dụng không
         for function, info in APP_FUNCTIONS.items():
             if any(keyword in message for keyword in info["keywords"]):
                 return {
@@ -590,7 +602,6 @@ def generate_response(message):
                     "suggestions": []  # Không cần gợi ý thêm vì đã có câu trả lời cụ thể
                 }
 
-        # Tìm FAQ khớp với từ khóa đầu hoặc cuối
         faqs = models.Faq.objects.filter(
             Q(question_keywords__icontains=message_tokens[0]) |
             Q(question_keywords__icontains=message_tokens[-1] if message_tokens else '')
@@ -605,7 +616,6 @@ def generate_response(message):
                 best_score = score
                 best_match = faq.answer
 
-        # Lấy tất cả từ khóa từ bảng Faq
         all_keywords = [keyword for faq in models.Faq.objects.all() for keyword in
                         ViTokenizer.tokenize(faq.question_keywords.lower()).split()]
 
@@ -621,7 +631,6 @@ def generate_response(message):
             close_questions = get_close_matches(message, all_questions, n=3, cutoff=0.5)
             suggestions.update(close_questions)
 
-        # Nếu không tìm thấy câu trả lời chính xác
         if not best_match:
             if suggestions:
                 return {
@@ -631,7 +640,6 @@ def generate_response(message):
             else:
                 return "Xin lỗi, tôi không hiểu câu hỏi của bạn. Vui lòng thử lại với câu hỏi khác."
 
-        # Lưu vào cache
         cache.set(cache_key, best_match, timeout=3600)
 
         # Trả về câu trả lời và gợi ý (nếu có)
@@ -645,32 +653,10 @@ def generate_response(message):
         print(f"Error in generate_response: {e}")
         return "Câu hỏi không hợp lệ. Vui lòng thử lại với câu hỏi khác."
 
-# ViewSet cho Chat Messages (giữ nguyên nhưng không sử dụng trong ai_chat_free_api)
-class ChatMessageViewSet(viewsets.ViewSet):
-    """ViewSet xử lý tin nhắn chat"""
-    permission_classes = [IsAuthenticated]
 
-    def list(self, request):
-        """Lấy danh sách tin nhắn của người dùng"""
-        queryset = models.ChatMessage.objects.filter(
-            sender=request.user
-        ).order_by('timestamp')
-        serializer = serializers.ChatMessageSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def create(self, request):
-        """Tạo tin nhắn mới"""
-        serializer = serializers.ChatMessageSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(sender=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# API endpoint cho AI chat
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def ai_chat_free_api(request):
-    """Chat với AI trả lời trực tiếp trong giao diện"""
     message = request.data.get('message')
     if not message:
         return Response({
@@ -678,10 +664,8 @@ def ai_chat_free_api(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Gọi hàm generate_response để xử lý câu hỏi
         response = generate_response(message)
 
-        # Nếu response là một dict với "message" (chứa gợi ý), trả về gợi ý
         if isinstance(response, dict) and "message" in response:
             # Lưu câu hỏi không có câu trả lời vào UnansweredQuestion
             models.UnansweredQuestion.objects.create(
@@ -701,7 +685,6 @@ def ai_chat_free_api(request):
                 'navigation': None
             }, status=status.HTTP_200_OK)
 
-        # Nếu response là một dict với "answer" (câu trả lời và gợi ý)
         if isinstance(response, dict) and "answer" in response:
             # Lưu vào QueryLog
             models.QueryLog.objects.create(
@@ -731,7 +714,6 @@ def ai_chat_free_api(request):
             answer=response
         )
 
-        # Trả về câu hỏi và câu trả lời (không lưu vào ChatMessage)
         return Response({
             'user_message': message,
             'ai_response': response,
@@ -753,6 +735,7 @@ def ai_chat_free_api(request):
             'success': False,
             'navigation': None
         }, status=status.HTTP_200_OK)
+
 
 class StatsAPIView(APIView):
     def get(self, request):

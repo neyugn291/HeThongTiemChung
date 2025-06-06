@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  ActivityIndicator,
-  TextInput,
-  Modal,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet, ActivityIndicator, TextInput, Modal } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -19,7 +9,7 @@ const VaccineManagement = ({ navigation, route }) => {
   const [vaccines, setVaccines] = useState([]);
   const [filteredVaccines, setFilteredVaccines] = useState([]);
   const [displayedVaccines, setDisplayedVaccines] = useState([]);
-  const [vaccineTypes, setVaccineTypes] = useState([]); // [{ id, name }, ...]
+  const [vaccineTypes, setVaccineTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("");

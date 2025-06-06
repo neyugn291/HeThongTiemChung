@@ -1,36 +1,12 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  Alert,
-  Modal,
-  Switch,
-  FlatList,
-} from "react-native";
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StatusBar, StyleSheet, Alert, Modal, Switch, FlatList } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
 
-const vietnameseMonths = [
-  "Tháng 1",
-  "Tháng 2",
-  "Tháng 3",
-  "Tháng 4",
-  "Tháng 5",
-  "Tháng 6",
-  "Tháng 7",
-  "Tháng 8",
-  "Tháng 9",
-  "Tháng 10",
-  "Tháng 11",
-  "Tháng 12",
-];
+const vietnameseMonths = [ "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", 
+  "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"];
 
 const statusOptions = [
   { label: "Đang sử dụng", value: "Active" },
@@ -119,7 +95,7 @@ const UpdateVaccine = ({ navigation, route }) => {
           endpoints.vaccines(vaccineId)
         );
         const vaccine = response.data;
-        console.log("Vaccine details:", vaccine); // Debug
+        console.log("Vaccine details:", vaccine);
         setFormData({
           name: vaccine.name || "",
           vaccine_type: vaccine.vaccine_type?.toString() || "",
@@ -231,7 +207,7 @@ const UpdateVaccine = ({ navigation, route }) => {
         status: formData.status,
         active: formData.active,
       };
-      console.log("Submit payload:", payload); // Debug
+      console.log("Submit payload:", payload);
       await authApis(token).patch(endpoints.vaccines(vaccineId), payload);
 
       const updatedVaccinesResponse = await authApis(token).get(

@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { database, ref, onValue } from "../../components/Home/firebase"; // Import các hàm modular
+import { database, ref, onValue } from "../../components/Home/firebase";
 
 const StaffChatScreen = ({ navigation }) => {
   const [chats, setChats] = useState([]);

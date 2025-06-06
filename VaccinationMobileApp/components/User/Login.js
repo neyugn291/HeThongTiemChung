@@ -15,7 +15,6 @@ const Login = () => {
   const dispatch = useContext(MyDispatchContext);
   const navigation = useNavigation();
 
-  // Kiểm tra dữ liệu đầu vào
   const validate = () => {
     if (!username) {
       setError("Vui lòng nhập tên đăng nhập!");
@@ -36,7 +35,6 @@ const Login = () => {
     setError(null);
 
     try {
-      // Chuẩn bị dữ liệu đăng nhập
       const loginData = {
         username,
         password,
@@ -46,7 +44,6 @@ const Login = () => {
       };
       console.log("Dữ liệu gửi lành đăng nhập:", loginData);
 
-      // Gửi yêu cầu đăng nhập
       const res = await Apis.post(endpoints["login"], loginData, {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -62,20 +59,16 @@ const Login = () => {
       
       console.log("Phản hồi đăng nhập:", res.data);
 
-      // Lưu access_token vào AsyncStorage
       await AsyncStorage.setItem("token", res.data.access_token);
 
-      // Lấy thông tin người dùng
       const userData = await authApis(res.data.access_token).get(endpoints["currentUser"]);
       console.log("Thông tin người dùng:", userData.data);
 
-      // Dispatch trạng thái đăng nhập
       dispatch({
         type: "login",
         payload: userData.data,
       });
 
-      // Kiểm tra is_superuser và is_staff để chuyển hướng
       if (userData.data.is_superuser === true) {
         navigation.replace("AdminHome");
       } else if (userData.data.is_staff === true) {

@@ -1,13 +1,5 @@
 import React, { useState, useContext } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -75,7 +67,7 @@ const Register = () => {
       setLoading(true);
       setError(null);
 
-      // Bước 1: Đăng ký người dùng
+      // Đăng ký người dùng
       let form = new FormData();
       if (user.email) form.append("email", user.email);
       if (user.username) form.append("username", user.username);
@@ -107,7 +99,6 @@ const Register = () => {
       if (registerResponse.status === 201) {
         console.log("Đăng ký thành công, response:", registerResponse.data);
 
-        // Bước 2: Đăng nhập để lấy access_token
         const loginData = {
           username: user.username,
           password: user.password,
@@ -118,7 +109,6 @@ const Register = () => {
         };
         console.log("Dữ liệu gửi lên đăng nhập:", loginData);
 
-        // Gửi yêu cầu đăng nhập
         const loginResponse = await Apis.post(endpoints["login"], loginData, {
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -137,20 +127,17 @@ const Register = () => {
         const accessToken = loginResponse.data.access_token;
         await AsyncStorage.setItem("token", accessToken);
 
-        // Bước 3: Lấy thông tin người dùng
         const userData = await authApis(accessToken).get(
           endpoints["currentUser"]
         );
         console.log("Thông tin người dùng:", userData.data);
 
-        // Bước 4: Dispatch trạng thái đăng nhập
         dispatch({
           type: "login",
           payload: userData.data,
         });
 
         Alert.alert("Thành công", "Đăng ký tài khoản thành công!");
-        // Chuyển hướng đến Home
         navigation.replace("Home");
       } else {
         throw new Error("Đăng ký thất bại");

@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, FlatList, TextInput, TouchableOpacity, StatusBar, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -21,11 +11,9 @@ const EditHealthNote = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [saving, setSaving] = useState({});
-  const [notes, setNotes] = useState({}); // State để lưu ghi chú cho từng record
+  const [notes, setNotes] = useState({});
   const [page, setPage] = useState(1);
-  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
-
-  const currentDate = new Date("2025-06-04T15:17:00+07:00"); // Thời gian hiện tại: 03:17 PM +07, 04/06/2025
+  const pageSize = 4;
 
   useEffect(() => {
     fetchRecords();
@@ -60,14 +48,12 @@ const EditHealthNote = ({ navigation }) => {
       setRecords(recordsWithNotes);
       setFilteredRecords(recordsWithNotes);
 
-      // Khởi tạo notes từ health_note của các record
       const initialNotes = recordsWithNotes.reduce((acc, item) => {
         acc[item.id] = item.health_note || "";
         return acc;
       }, {});
       setNotes(initialNotes);
 
-      // Hiển thị trang đầu tiên
       setDisplayedRecords(recordsWithNotes.slice(0, pageSize));
       setPage(1);
     } catch (error) {
