@@ -49,8 +49,6 @@ urlpatterns = [
                        namespace='oauth2_provider')),
     re_path(r'^ckeditor/',
             include('ckeditor_uploader.urls')),
-
-    path('chatbot/', include('chatbot.urls')), path('chatbot/', include('chatbot.urls')),  # chatbot
 ]
 if settings.DEBUG:
     import debug_toolbar

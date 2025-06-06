@@ -10,9 +10,9 @@ from django.utils.translation import gettext_lazy as _
 
 # Create your models here.
 class BaseModel(models.Model):
-    active = models.BooleanField(default=True)  # Xác định trạng thái kích hoạt
-    created_date = models.DateTimeField(auto_now_add=True, null=True)  # Ngày tạo
-    updated_date = models.DateTimeField(auto_now=True, null=True)  # Ngày cập nhật
+    active = models.BooleanField(default=True)
+    created_date = models.DateTimeField(auto_now_add=True, null=True)
+    updated_date = models.DateTimeField(auto_now=True, null=True)
 
     class Meta:
         abstract = True
@@ -36,8 +36,7 @@ class User(AbstractUser, BaseModel):
     email = models.EmailField(unique=True, null=True, blank=True)
     phone_number = models.CharField(max_length=11, unique=True, null=True, blank=True)
     avatar = CloudinaryField(null=True)
-    is_verified = models.BooleanField(default=False)  # Xac thuc nguoi dung
-
+    is_verified = models.BooleanField(default=False)
     modified_date = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = 'username'
@@ -46,13 +45,11 @@ class User(AbstractUser, BaseModel):
     def __str__(self):
         return self.username
 
-
 class VaccineType(BaseModel):
     name = models.CharField(_('name'), max_length=50, unique=True)
 
     def __str__(self):
         return self.name
-
 
 def get_default_vaccine_type():
     return VaccineType.objects.get(name='COVID-19').id
@@ -116,13 +113,12 @@ class Appointment(BaseModel):
     registered_at = models.DateTimeField(auto_now_add=True)
     reminder_enabled = models.BooleanField(default=False)
     is_confirmed = models.BooleanField(default=False)
-    is_inoculated = models.BooleanField(default=False)  # Trường xác nhận đã tiêm hay chưa
+    is_inoculated = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username} - {self.schedule}"
 
     def clean(self):
-        # Validation logic: chỉ được phép tiêm nếu đã xác nhận
         if self.is_inoculated and not self.is_confirmed:
             raise ValidationError("Không thể đánh dấu ĐÃ TIÊM khi cuộc hẹn chưa được xác nhận.")
 
@@ -140,7 +136,7 @@ class Appointment(BaseModel):
             if old.is_confirmed and not self.is_confirmed:
                 self.schedule.slot_count += 1
                 self.schedule.save()
-        elif self.is_confirmed:  # Trường hợp tạo mới và đã xác nhận luôn
+        elif self.is_confirmed:
             if self.schedule.slot_count > 0:
                 self.schedule.slot_count -= 1
                 self.schedule.save()
@@ -153,7 +149,6 @@ class Appointment(BaseModel):
             self.create_vaccination_record()
 
     def create_vaccination_record(self):
-        # Tạo bản ghi tiêm vaccine khi đã xác nhận tiêm
         previous_doses = VaccinationRecord.objects.filter(
             user=self.user,
             vaccine=self.schedule.vaccine

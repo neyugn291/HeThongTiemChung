@@ -66,10 +66,6 @@ class MyUserAdmin(UserAdmin):
     search_fields = ['username', 'email']
     ordering = ['id']
 
-    # fieldsets = UserAdmin.fieldsets + (
-    #     ('Thông tin bổ sung', {'fields': ('role', 'avatar')}),
-    # )
-
 
 class InjectionScheduleForm(forms.ModelForm):
     description = forms.CharField(widget=CKEditorUploadingWidget())  # Giới thiệu chi tiết lịch tiêm nếu có
@@ -80,22 +76,11 @@ class InjectionScheduleForm(forms.ModelForm):
 
 
 class InjectionScheduleAdmin(admin.ModelAdmin):
-    # Hiển thị các trường trong list view
     list_display = ['id', 'vaccine', 'site', 'date', 'slot_count']
-
-    # Thêm filter để lọc theo vaccine và site
     list_filter = ['vaccine', 'site']
-
-    # Tìm kiếm theo vaccine name hoặc site name
     search_fields = ['vaccine__name', 'site__name']
-
-    # Cho phép chỉnh sửa nhiều record cùng lúc
     actions = ['mark_as_active', 'mark_as_inactive']
-
-    # Thêm form tuỳ chỉnh cho việc tạo/edit InjectionSchedule
     form = InjectionScheduleForm
-
-    # Cho phép chỉnh sửa một số thông tin trên bảng chi tiết lịch tiêm
     fieldsets = (
         (None, {
             'fields': ('vaccine', 'site', 'date', 'slot_count')
@@ -107,10 +92,10 @@ class InjectionScheduleAdmin(admin.ModelAdmin):
 
 
 class InjectionSiteAdmin(admin.ModelAdmin):
-    list_display = ('name', 'address', 'created_at')  # Chỉnh sửa các trường cần hiển thị trong danh sách
-    search_fields = ('name', 'address')  # Thêm khả năng tìm kiếm theo tên và địa chỉ
-    list_filter = ('created_at',)  # Thêm khả năng lọc theo ngày tạo
-    ordering = ('-created_at',)  # Sắp xếp theo ngày tạo, mới nhất lên trên
+    list_display = ('name', 'address', 'created_at')
+    search_fields = ('name', 'address')
+    list_filter = ('created_at',)
+    ordering = ('-created_at',)
 
 
 from django.contrib import admin

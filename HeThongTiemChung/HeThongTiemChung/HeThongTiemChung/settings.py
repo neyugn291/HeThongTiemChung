@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     'ckeditor_uploader',
     'debug_toolbar',
     'corsheaders',
-    'chatbot',
 ]
 
 REST_FRAMEWORK = {
@@ -85,10 +84,9 @@ ROOT_URLCONF = 'HeThongTiemChung.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # 'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'DIRS': [
-            os.path.join(BASE_DIR, 'templates'),  # thư mục chung nếu có
-            BASE_DIR / 'AppTiemChung' / 'templates',  # thư mục templates app
+            os.path.join(BASE_DIR, 'templates'),
+            BASE_DIR / 'AppTiemChung' / 'templates',
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -99,7 +97,6 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
             ],
         },
-        # 'DIRS': [BASE_DIR / 'VaccinationApp' / 'templates'],
     },
 ]
 
@@ -113,8 +110,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'vaccinationappdb',
         'USER': 'root',
-        'PASSWORD': 'Abc123',
-        'HOST': ''  # mặc định localhost
+        'PASSWORD': 'Demo@123',
+        'HOST': ''
     }
 }
 
@@ -187,7 +184,7 @@ CLIENT_SECRET = 'UEJSsQzXfz1ATwjuLJuQ0euJnBetLBU1BM6EfOtq5kGxSxPdAsMsx3j82YZGgQ7
 
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',  # bắt buộc
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 
@@ -201,8 +198,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'dhnguyen243@gmail.com'  # Thay bằng email thật
-EMAIL_HOST_PASSWORD = 'iqhm vaao xybp qcjp'  # Dùng app password, KHÔNG dùng password tài khoản
+EMAIL_HOST_USER = 'dhnguyen243@gmail.com'
+EMAIL_HOST_PASSWORD = 'iqhm vaao xybp qcjp'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 CACHES = {

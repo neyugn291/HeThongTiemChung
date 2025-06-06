@@ -4,11 +4,10 @@ from .models import VaccineType, Vaccine
 
 
 def load_vaccine(param={}):
-    q = Vaccine.objects.filter(status='Active')  # sửa thành status='Active'
-
+    q = Vaccine.objects.filter(status='Active')
     kw = param.get('kw')
     if kw:
-        q = q.filter(name__icontains=kw)  # sửa subject thành name, dùng icontains
+        q = q.filter(name__icontains=kw)
 
     vaccine_type_id = param.get('vaccine_type')
     if vaccine_type_id:

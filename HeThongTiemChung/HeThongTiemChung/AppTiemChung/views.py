@@ -2,7 +2,7 @@ from datetime import datetime
 import hashlib
 from django.conf import settings
 from django.core.mail import send_mail
-from django.http import HttpResponse, FileResponse
+from django.http import HttpResponse, FileResponse,JsonResponse
 from rest_framework import viewsets, generics, parsers, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -24,7 +24,6 @@ from difflib import get_close_matches
 from django.db.models import Q
 import firebase_admin
 from firebase_admin import credentials, db
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
