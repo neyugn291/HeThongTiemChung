@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  Platform,
-  Image,
-  Alert,
-  StyleSheet,
-  Modal,
-} from "react-native";
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StatusBar, Platform, Image, Alert, StyleSheet, Modal } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,7 +7,6 @@ import { authApis, endpoints } from "../../configs/Apis";
 import Styles from "../../components/Home/Styles";
 import { Picker } from "@react-native-picker/picker";
 
-// Danh sách tháng bằng tiếng Việt
 const vietnameseMonths = [
   "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
   "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
@@ -164,7 +151,6 @@ const Profile = ({ navigation, route }) => {
       const token = await AsyncStorage.getItem("token");
       const formDataToSend = new FormData();
 
-      // Thêm các trường vào formDataToSend, chỉ thêm nếu giá trị không rỗng
       if (formData.last_name) {
         formDataToSend.append("last_name", formData.last_name);
       }
@@ -194,21 +180,18 @@ const Profile = ({ navigation, route }) => {
         });
       }
 
-      console.log("Sending form data:", formDataToSend); // Debug
+      console.log("Sending form data:", formDataToSend);
 
-      // Gửi yêu cầu cập nhật lên API
       const response = await authApis(token).patch(endpoints["currentUser"], formDataToSend, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       console.log("API Response:", response.data); // Debug
 
-      // Lấy dữ liệu người dùng mới sau khi cập nhật
       const updatedResponse = await authApis(token).get(endpoints["currentUser"]);
       const updatedData = updatedResponse.data;
       console.log("Updated data from API:", updatedData); // Debug
 
-      // Điều hướng về màn hình "Account" với dữ liệu mới
       navigation.navigate("Account", { updatedData });
 
       Alert.alert("Thành công", "Cập nhật thông tin thành công!", [

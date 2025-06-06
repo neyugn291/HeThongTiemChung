@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  Platform,
-  Image,
-  StyleSheet,
-} from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, Image } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Styles from "../../components/Home/Styles";
 import AsyncStorage from "@react-native-async-storage/async-storage";

@@ -1,17 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-  scrollToEnd
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, scrollToEnd } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -53,7 +41,6 @@ const ChatScreen = ({ navigation }) => {
       setMessages(prevMessages => [...prevMessages, userMessage]);
       scrollToBottom();
 
-      // Gọi API để lấy phản hồi từ AI
       const response = await authApis(token).post(endpoints["aiChat"], {
         message: trimmedText,
       });

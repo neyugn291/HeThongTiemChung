@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  Switch,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, FlatList, TextInput, TouchableOpacity, StatusBar, StyleSheet, Switch, Alert, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -22,9 +11,7 @@ const RecordManagement = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
-
-  const currentDate = new Date("2025-06-04T15:22:00+07:00"); // Thời gian hiện tại: 03:22 PM +07, 04/06/2025
+  const pageSize = 4;
 
   useEffect(() => {
     fetchAppointments();
@@ -56,7 +43,7 @@ const RecordManagement = ({ navigation }) => {
 
       setAppointments(response.data);
       setFilteredAppointments(response.data);
-      setDisplayedAppointments(response.data.slice(0, pageSize)); // Hiển thị trang đầu tiên
+      setDisplayedAppointments(response.data.slice(0, pageSize));
       setPage(1);
     } catch (error) {
       console.error("Error fetching appointments:", error.message, error.response?.data, error.response?.status);

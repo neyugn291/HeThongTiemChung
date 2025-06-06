@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StatusBar,
-  TextInput,
-  Modal,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StatusBar, TextInput, Modal, ActivityIndicator, Alert, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -25,7 +14,7 @@ const TypeManagement = ({ navigation }) => {
   const [editTypeId, setEditTypeId] = useState(null);
   const [editTypeName, setEditTypeName] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
+  const pageSize = 4;
 
   useEffect(() => {
     fetchVaccineTypes();
@@ -36,17 +25,17 @@ const TypeManagement = ({ navigation }) => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      console.log("Fetching vaccine types from:", endpoints.vaccineTypes()); // Log
+      console.log("Fetching vaccine types from:", endpoints.vaccineTypes());
       const response = await authApis(token).get(endpoints.vaccineTypes());
-      console.log("VaccineTypes API response:", response.data); // Log
+      console.log("VaccineTypes API response:", response.data);
       const sortedTypes = response.data.sort((a, b) =>
         a.name.localeCompare(b.name)
       );
       setVaccineTypes(sortedTypes);
-      setDisplayedVaccineTypes(sortedTypes.slice(0, pageSize)); // Hiển thị trang đầu tiên
+      setDisplayedVaccineTypes(sortedTypes.slice(0, pageSize));
       setPage(1);
     } catch (error) {
-      console.error("Error details:", error.response?.data || error.message); // Log
+      console.error("Error details:", error.response?.data || error.message);
       Alert.alert("Lỗi", "Không thể tải danh sách loại vaccine.");
     } finally {
       setLoading(false);
@@ -65,7 +54,6 @@ const TypeManagement = ({ navigation }) => {
     console.log("loadMoreVaccineTypes - New displayed types:", newTypes.length);
   };
 
-  // Thêm loại vaccine
   const addVaccineType = async () => {
     if (!newTypeName.trim()) {
       Alert.alert("Lỗi", "Tên loại vaccine không được để trống.");
@@ -80,7 +68,7 @@ const TypeManagement = ({ navigation }) => {
       });
       setNewTypeName("");
       setModalVisible(false);
-      fetchVaccineTypes(); // Làm mới
+      fetchVaccineTypes();
       Alert.alert("Thành công", "Thêm loại vaccine thành công!");
     } catch (error) {
       console.error("Error adding vaccine type:", error.response?.data || error.message); // Log
@@ -106,10 +94,10 @@ const TypeManagement = ({ navigation }) => {
       setEditTypeId(null);
       setEditTypeName("");
       setEditModalVisible(false);
-      fetchVaccineTypes(); // Làm mới
+      fetchVaccineTypes();
       Alert.alert("Thành công", "Cập nhật loại vaccine thành công!");
     } catch (error) {
-      console.error("Error updating vaccine type:", error.response?.data || error.message); // Log
+      console.error("Error updating vaccine type:", error.response?.data || error.message);
       Alert.alert("Lỗi", "Không thể cập nhật loại vaccine.");
     } finally {
       setLoading(false);
@@ -131,10 +119,10 @@ const TypeManagement = ({ navigation }) => {
               setLoading(true);
               const token = await AsyncStorage.getItem("token");
               await authApis(token).delete(endpoints.vaccineTypes(id));
-              fetchVaccineTypes(); // Làm mới
+              fetchVaccineTypes();
               Alert.alert("Thành công", "Xóa loại vaccine thành công!");
             } catch (error) {
-              console.error("Error deleting vaccine type:", error.response?.data || error.message); // Log
+              console.error("Error deleting vaccine type:", error.response?.data || error.message);
               Alert.alert("Lỗi", "Không thể xóa loại vaccine.");
             } finally {
               setLoading(false);
@@ -152,7 +140,6 @@ const TypeManagement = ({ navigation }) => {
     setEditModalVisible(true);
   };
 
-  // Hiển thị mỗi loại vaccine
   const renderVaccineType = ({ item }) => (
     <View style={styles.typeCard}>
       <View style={styles.typeInfo}>
@@ -229,7 +216,7 @@ const TypeManagement = ({ navigation }) => {
         </View>
       )}
 
-      {/* Modal thêm loại vaccine */}
+      {/* Thêm */}
       <Modal
         transparent={true}
         visible={modalVisible}
@@ -263,7 +250,7 @@ const TypeManagement = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Modal chỉnh sửa loại vaccine */}
+      {/* Chỉnh sửa */}
       <Modal
         transparent={true}
         visible={editModalVisible}

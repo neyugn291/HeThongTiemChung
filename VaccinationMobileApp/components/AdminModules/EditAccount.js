@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  Alert,
-  StyleSheet,
-  Switch,
-} from "react-native";
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StatusBar, Alert, StyleSheet, Switch } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -231,7 +221,6 @@ const EditAccount = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Trạng thái hoạt động với Switch ngang hàng */}
         <View style={styles.toggleContainer}>
           <Text style={styles.label}>Trạng thái hoạt động</Text>
           <Switch
@@ -358,7 +347,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   switch: {
-    transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }], // Điều chỉnh kích thước Switch nếu cần
+    transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
   },
   loadingText: {
     color: "#fff",

@@ -1,14 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  Image,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  Platform,
-  Animated,
-} from "react-native";
+import { View, Text, Image, ScrollView, TouchableOpacity, StatusBar, Platform, Animated } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Video } from "expo-av";
 import Styles from "../../components/Home/Styles";

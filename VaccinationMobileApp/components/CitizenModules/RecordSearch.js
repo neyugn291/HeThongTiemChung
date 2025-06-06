@@ -1,22 +1,11 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Modal,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet, ActivityIndicator, Alert, Modal} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
 import { Searchbar } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
 
-// Danh sách tháng bằng tiếng Việt
 const vietnameseMonths = [
   "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
   "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
@@ -28,8 +17,8 @@ const RecordSearch = ({ navigation }) => {
   const [displayedRecords, setDisplayedRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
-  const [q, setQ] = useState(""); // Từ khóa tìm kiếm
+  const pageSize = 4;
+  const [q, setQ] = useState("");
   const [filterMonth, setFilterMonth] = useState(""); // Bộ lọc tháng
   const [filterYear, setFilterYear] = useState(""); // Bộ lọc năm
   const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -54,7 +43,7 @@ const RecordSearch = ({ navigation }) => {
       );
 
       setVaccinationRecords(sortedRecords);
-      filterRecords(sortedRecords, q, filterMonth, filterYear); // Áp dụng tìm kiếm và lọc ngay sau khi tải
+      filterRecords(sortedRecords, q, filterMonth, filterYear);
     } catch (error) {
       console.error("Error fetching vaccination history:", error);
       Alert.alert("Lỗi", "Không thể tải lịch sử tiêm chủng.");
@@ -63,7 +52,6 @@ const RecordSearch = ({ navigation }) => {
     }
   };
 
-  // Xử lý tìm kiếm và lọc theo vaccine_name hoặc vaccine_type_name, tháng, năm
   const filterRecords = (records, searchQuery, month, year) => {
     let filtered = records;
 
@@ -80,7 +68,6 @@ const RecordSearch = ({ navigation }) => {
       });
     }
 
-    // Tìm kiếm theo vaccine_name hoặc vaccine_type_name
     if (searchQuery) {
       filtered = filtered.filter((record) =>
         record.vaccine_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,17 +77,14 @@ const RecordSearch = ({ navigation }) => {
 
     setFilteredRecords(filtered);
 
-    // Hiển thị trang đầu tiên (lazy loading)
     setDisplayedRecords(filtered.slice(0, pageSize));
     setPage(1);
 
-    // Log số lượng bản ghi sau khi lọc
     console.log("filterRecords - Total filtered records:", filtered.length);
     console.log("filterRecords - Displayed records (initial):", filtered.slice(0, pageSize).length);
     console.log("filterRecords - Current page:", 1);
   };
 
-  // Xử lý lazy loading khi cuộn đến cuối danh sách
   const loadMoreRecords = () => {
     console.log("loadMoreRecords - Triggered");
     console.log("loadMoreRecords - Current displayed records:", displayedRecords.length);
@@ -120,7 +104,6 @@ const RecordSearch = ({ navigation }) => {
     console.log("loadMoreRecords - New displayed records:", newRecords.length);
   };
 
-  // Xử lý tìm kiếm
   const search = (value) => {
     setQ(value);
     filterRecords(vaccinationRecords, value, filterMonth, filterYear);
@@ -145,7 +128,6 @@ const RecordSearch = ({ navigation }) => {
     setIsFilterVisible(false);
   };
 
-  // Kiểm tra tính hợp lệ của tháng và năm
   const validateDate = (month, year) => {
     const monthNum = parseInt(month, 10);
     const yearNum = parseInt(year, 10);
@@ -232,7 +214,6 @@ const RecordSearch = ({ navigation }) => {
         />
       )}
 
-      {/* Modal cho bộ lọc tháng và năm */}
       <Modal
         transparent={true}
         visible={isFilterVisible}
@@ -241,7 +222,6 @@ const RecordSearch = ({ navigation }) => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Dòng cố định cho title "Tháng", "Năm" */}
             <View style={styles.fixedTitleContainer}>
               <Text style={[styles.fixedTitle, { width: 170 }]}>Tháng</Text>
               <Text style={[styles.fixedTitle, { width: 130 }]}>Năm</Text>

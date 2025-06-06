@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -23,14 +14,14 @@ const BookingAppointment = ({ navigation }) => {
   const [showAllAppointments, setShowAllAppointments] = useState(false);
   const itemsPerPage = 4;
 
-  const currentDate = new Date("2025-06-02T13:35:00+07:00"); // Thời gian hiện tại: 01:35 PM +07, 02/06/2025
+  const currentDate = new Date();
 
   useEffect(() => {
     fetchSchedules();
     fetchUserAppointments();
   }, []);
 
-  // Lấy lịch tiêm từ API schedules
+  // Lấy tất cả lịch tiêm
   const fetchSchedules = async () => {
     try {
       setLoading(true);
@@ -70,7 +61,6 @@ const BookingAppointment = ({ navigation }) => {
         throw new Error("Dữ liệu lịch hẹn không hợp lệ.");
       }
 
-      // Sắp xếp lịch hẹn theo ngày tiêm (schedule.date)
       const upcomingAppointments = response.data
         .filter((item) => {
           try {
@@ -115,7 +105,6 @@ const BookingAppointment = ({ navigation }) => {
     }
   };
 
-  // Lọc và phân trang
   const filterItems = (data, pageNum) => {
     const startIndex = (pageNum - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -125,7 +114,6 @@ const BookingAppointment = ({ navigation }) => {
     );
   };
 
-  // Tải thêm
   const loadMoreItems = () => {
     if (isLoadingMore || displayedItems.length >= (showAllAppointments ? appointments.length : schedules.length)) return;
     setIsLoadingMore(true);
@@ -152,7 +140,6 @@ const BookingAppointment = ({ navigation }) => {
     );
   };
 
-  // Đặt lịch (POST API)
   const bookAppointment = async (schedule) => {
     if (checkDuplicateAppointment(schedule)) {
       Alert.alert("Cảnh báo", "Bạn đã có lịch hẹn cho lịch tiêm này.");
@@ -198,7 +185,6 @@ const BookingAppointment = ({ navigation }) => {
     }
   };
 
-  // Hủy lịch hẹn (DELETE API)
   const deleteAppointment = async (appointmentId) => {
     Alert.alert(
       "Xác nhận",
@@ -231,7 +217,6 @@ const BookingAppointment = ({ navigation }) => {
     );
   };
 
-  // Hiển thị mỗi mục
   const renderItem = ({ item }) => {
     const isAppointment = showAllAppointments;
     const isUpcoming = isAppointment

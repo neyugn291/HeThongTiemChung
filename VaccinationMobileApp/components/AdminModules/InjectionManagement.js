@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Modal,
-  TextInput,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -42,9 +31,9 @@ const InjectionManagement = ({ navigation }) => {
   const [originalSchedule, setOriginalSchedule] = useState(null);
   const [currentSite, setCurrentSite] = useState({ id: null, name: "", address: "", phone: "" });
   const [page, setPage] = useState(1);
-  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
+  const pageSize = 4;
 
-  const currentDate = new Date("2025-06-04T15:33:00+07:00"); // Thời gian hiện tại: 03:33 PM +07, 04/06/2025
+  const currentDate = new Date();
 
   useEffect(() => {
     fetchSchedules();

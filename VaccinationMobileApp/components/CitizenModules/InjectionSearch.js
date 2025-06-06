@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  ActivityIndicator,
-  Modal,
-  Alert,
-  Switch,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet, ActivityIndicator, Modal, Alert, Switch } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -34,7 +23,6 @@ const InjectionSearch = ({ navigation }) => {
     fetchSchedules();
   }, [showPastSchedules]);
 
-  // Lấy danh sách lịch tiêm và trích xuất địa điểm
   const fetchSchedules = async () => {
     try {
       setLoading(true);
@@ -46,19 +34,17 @@ const InjectionSearch = ({ navigation }) => {
       const response = await authApis(token).get(endpoint);
       console.log("Schedules API response:", JSON.stringify(response.data, null, 2));
 
-      // Sắp xếp lịch
       const sortedSchedules = response.data.sort((a, b) =>
         showPastSchedules
-          ? new Date(b.date) - new Date(a.date) // Giảm dần: gần nhất trên cùng
-          : new Date(a.date) - new Date(b.date) // Tăng dần: gần nhất trên cùng
+          ? new Date(b.date) - new Date(a.date)
+          : new Date(a.date) - new Date(b.date)
       );
 
       // Lọc client-side
       const filteredData = showPastSchedules
-        ? sortedSchedules.filter((schedule) => new Date(schedule.date).getTime() < new Date().setHours(0, 0, 0, 0)) // Chỉ lịch cũ
-        : sortedSchedules.filter((schedule) => new Date(schedule.date).getTime() >= new Date().setHours(0, 0, 0, 0)); // Chỉ lịch sắp tới
+        ? sortedSchedules.filter((schedule) => new Date(schedule.date).getTime() < new Date().setHours(0, 0, 0, 0)) 
+        : sortedSchedules.filter((schedule) => new Date(schedule.date).getTime() >= new Date().setHours(0, 0, 0, 0));
 
-      // Lấy danh sách địa điểm duy nhất
       const uniqueSites = [
         ...new Set(
           sortedSchedules
@@ -82,16 +68,13 @@ const InjectionSearch = ({ navigation }) => {
     }
   };
 
-  // Lọc và phân trang dữ liệu
   const filterSchedules = (data, searchQuery, site, pageNum) => {
     let filtered = data;
 
-    // Lọc theo địa điểm
     if (site) {
       filtered = filtered.filter((schedule) => schedule.site_name === site);
     }
 
-    // Tìm kiếm
     if (searchQuery) {
       filtered = filtered.filter((schedule) =>
         (schedule.vaccine_name &&
@@ -101,7 +84,6 @@ const InjectionSearch = ({ navigation }) => {
       );
     }
 
-    // Phân trang
     const startIndex = (pageNum - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedSchedules = filtered.slice(startIndex, endIndex);
@@ -111,7 +93,6 @@ const InjectionSearch = ({ navigation }) => {
     );
   };
 
-  // Tải thêm lịch
   const loadMore = () => {
     if (isLoadingMore || filteredSchedules.length >= schedules.length) return;
 
@@ -152,7 +133,6 @@ const InjectionSearch = ({ navigation }) => {
     setFilteredSchedules([]);
   };
 
-  // Hiển thị mỗi lịch tiêm
   const renderSchedule = ({ item }) => (
     <View style={styles.scheduleCard}>
       <View style={styles.scheduleInfo}>
@@ -189,7 +169,6 @@ const InjectionSearch = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Thanh tìm kiếm */}
       <View style={styles.searchContainer}>
         <Searchbar
           placeholder="Tìm kiếm theo tên hoặc loại vaccine"
@@ -239,7 +218,6 @@ const InjectionSearch = ({ navigation }) => {
         </View>
       )}
 
-      {/* Modal cho bộ lọc địa điểm */}
       <Modal
         transparent={true}
         visible={isFilterVisible}

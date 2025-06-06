@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Modal,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet, ActivityIndicator, Alert, Modal } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -28,7 +18,6 @@ const arrayBufferToBase64 = (arrayBuffer) => {
   return btoa(binary);
 };
 
-// Danh sách tháng bằng tiếng Việt
 const vietnameseMonths = [
   "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
   "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
@@ -45,7 +34,7 @@ const DownloadCertificate = ({ navigation }) => {
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const itemsPerPage = 4;
-  const [q, setQ] = useState(""); // Từ khóa tìm kiếm
+  const [q, setQ] = useState("");
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
   const currentYear = new Date().getFullYear();
@@ -55,7 +44,6 @@ const DownloadCertificate = ({ navigation }) => {
     fetchVaccinationRecords();
   }, []);
 
-  // Lấy danh sách bản ghi tiêm chủng
   const fetchVaccinationRecords = async () => {
     try {
       setLoading(true);
@@ -74,11 +62,9 @@ const DownloadCertificate = ({ navigation }) => {
     }
   };
 
-  // Lọc và phân trang dữ liệu
   const filterRecords = (records, searchQuery, month, year, pageNum) => {
     let filtered = records;
 
-    // Lọc theo tháng và năm
     if (month || year) {
       filtered = filtered.filter((record) => {
         const recordDate = new Date(record.injection_date);
@@ -99,18 +85,15 @@ const DownloadCertificate = ({ navigation }) => {
       );
     }
 
-    // Phân trang: chỉ lấy dữ liệu từ startIndex đến endIndex
     const startIndex = (pageNum - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedRecords = filtered.slice(startIndex, endIndex);
 
-    // Cập nhật danh sách hiển thị
     setFilteredRecords((prev) =>
       pageNum === 1 ? paginatedRecords : [...prev, ...paginatedRecords]
     );
   };
 
-  // Tải thêm dữ liệu khi cuộn đến cuối danh sách
   const loadMoreRecords = () => {
     if (isLoadingMore || filteredRecords.length >= vaccinationRecords.length) return;
 
@@ -143,7 +126,6 @@ const DownloadCertificate = ({ navigation }) => {
     setIsFilterVisible(false);
   };
 
-  // Kiểm tra tính hợp lệ của tháng và năm
   const validateDate = (month, year) => {
     const monthNum = parseInt(month, 10);
     const yearNum = parseInt(year, 10);
@@ -165,11 +147,10 @@ const DownloadCertificate = ({ navigation }) => {
   // Xử lý tìm kiếm
   const search = (value) => {
     setQ(value);
-    setPage(1); // Reset trang về 1 khi tìm kiếm
+    setPage(1);
     filterRecords(vaccinationRecords, value, filterMonth, filterYear, 1);
   };
 
-  // Xử lý tải giấy chứng nhận cho từng bản ghi
   const handleDownload = async (recordId) => {
     try {
       setDownloadingId(recordId);
@@ -311,7 +292,6 @@ const DownloadCertificate = ({ navigation }) => {
         </View>
       )}
 
-      {/* Modal cho bộ lọc tháng và năm */}
       <Modal
         transparent={true}
         visible={isFilterVisible}
@@ -320,7 +300,6 @@ const DownloadCertificate = ({ navigation }) => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Dòng cố định cho title "Tháng", "Năm" */}
             <View style={styles.fixedTitleContainer}>
               <Text style={[styles.fixedTitle, { width: 170 }]}>Tháng</Text>
               <Text style={[styles.fixedTitle, { width: 130 }]}>Năm</Text>

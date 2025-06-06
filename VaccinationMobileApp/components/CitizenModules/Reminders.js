@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  Switch,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet, Switch, Alert, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -18,7 +8,7 @@ const Reminders = ({ navigation }) => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const currentDate = new Date("2025-06-02T15:08:00+07:00"); // Thời gian hiện tại: 03:08 PM +07, 02/06/2025
+  const currentDate = new Date();
 
   useEffect(() => {
     fetchAppointments();
@@ -58,7 +48,7 @@ const Reminders = ({ navigation }) => {
         })
         .map((appointment) => ({
           ...appointment,
-          reminder_enabled: appointment.reminder_enabled || false, // Giả định nếu không có
+          reminder_enabled: appointment.reminder_enabled || false,
         }))
         .sort((a, b) => {
           const dateA = new Date(a.schedule?.date || a.date);
@@ -90,7 +80,7 @@ const Reminders = ({ navigation }) => {
       const token = await AsyncStorage.getItem("token");
       if (!token) throw new Error("Token không tồn tại.");
 
-      console.log("Token used:", token.substring(0, 10) + "..."); // Log token để debug
+      console.log("Token used:", token.substring(0, 10) + "...");
       const toggleEndpoint = endpoints["toggleReminder"](appointmentId);
       console.log("Calling toggleReminder with endpoint:", toggleEndpoint);
       const response = await authApis(token).patch(toggleEndpoint, {
@@ -98,7 +88,6 @@ const Reminders = ({ navigation }) => {
       });
       console.log("Toggle reminder response:", JSON.stringify(response.data, null, 2));
 
-      // Cập nhật trạng thái cục bộ
       setAppointments((prevAppointments) =>
         prevAppointments.map((appointment) =>
           appointment.id === appointmentId

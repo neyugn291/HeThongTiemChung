@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  Image,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  Platform,
-  StyleSheet,
-} from "react-native";
+import { View, Text, Image, ScrollView, TouchableOpacity, StatusBar, Platform, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -31,7 +22,7 @@ const Account = ({ navigation, route }) => {
       if (!token) throw new Error("Vui lòng đăng nhập lại!");
       const response = await authApis(token).get(endpoints["currentUser"]);
       setUserData(response.data);
-      console.log("Fetched user data:", response.data); // Debug
+      console.log("Fetched user data:", response.data);
     } catch (error) {
       console.error("Error fetching user data:", error);
       setUserData({ first_name: "", last_name: "" });
@@ -48,10 +39,9 @@ const Account = ({ navigation, route }) => {
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       fetchUserData(); // Gọi lại API mỗi khi trang Account được focus
-      // Kiểm tra nếu có dữ liệu cập nhật từ Profile
       if (route.params?.updatedData) {
         setUserData(route.params.updatedData);
-        console.log("Updated data from route params:", route.params.updatedData); // Debug
+        console.log("Updated data from route params:", route.params.updatedData);
       }
     });
     return unsubscribe;

@@ -1,36 +1,12 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  StyleSheet,
-  Alert,
-  Modal,
-  Switch,
-  FlatList,
-} from "react-native";
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StatusBar, StyleSheet, Alert, Modal, Switch, FlatList } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
 
-const vietnameseMonths = [
-  "Tháng 1",
-  "Tháng 2",
-  "Tháng 3",
-  "Tháng 4",
-  "Tháng 5",
-  "Tháng 6",
-  "Tháng 7",
-  "Tháng 8",
-  "Tháng 9",
-  "Tháng 10",
-  "Tháng 11",
-  "Tháng 12",
-];
+const vietnameseMonths = ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7",
+"Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12" ];
 
 const statusOptions = [
   { label: "Đang sử dụng", value: "Active" },
@@ -67,7 +43,7 @@ const AddVaccine = ({ navigation }) => {
   const months = Array.from({ length: 12 }, (_, i) =>
     (i + 1).toString().padStart(2, "0")
   );
-  const currentYear = new Date("2025-06-04T15:52:00+07:00").getFullYear(); // Cập nhật thời gian hiện tại
+  const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1900 + 1 }, (_, i) =>
     (currentYear - i).toString()
   );
@@ -144,7 +120,7 @@ const AddVaccine = ({ navigation }) => {
       return { isValid: false, error: "Ngày, tháng, năm không hợp lệ." };
     }
 
-    const today = new Date("2025-06-04T15:52:00+07:00"); // Cập nhật thời gian hiện tại
+    const today = new Date();
     if (yearNum > today.getFullYear()) {
       return { isValid: false, error: "Năm không thể ở tương lai." };
     }
@@ -164,7 +140,7 @@ const AddVaccine = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
-    console.log("Form Data on Submit:", JSON.stringify(formData, null, 2)); // Log giá trị formData khi submit
+    console.log("Form Data on Submit:", JSON.stringify(formData, null, 2));
     if (!formData.name.trim() || !formData.vaccine_type) {
       Alert.alert("Lỗi", "Tên vaccine và loại vaccine là bắt buộc.");
       return;

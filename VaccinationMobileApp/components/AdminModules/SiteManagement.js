@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StatusBar,
-  TextInput,
-  Modal,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StatusBar, TextInput, Modal, ActivityIndicator, Alert, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -25,28 +14,27 @@ const SiteManagement = ({ navigation }) => {
   const [editSiteId, setEditSiteId] = useState(null);
   const [editSite, setEditSite] = useState({ name: "", address: "", phone: "" });
   const [page, setPage] = useState(1);
-  const pageSize = 4; // Số lượng bản ghi hiển thị mỗi lần tải
+  const pageSize = 4;
 
   useEffect(() => {
     fetchSites();
   }, []);
 
-  // Lấy danh sách địa điểm
   const fetchSites = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      console.log("Fetching sites from:", endpoints.sites()); // Log
+      console.log("Fetching sites from:", endpoints.sites());
       const response = await authApis(token).get(endpoints.sites());
-      console.log("Sites API response:", response.data); // Log
+      console.log("Sites API response:", response.data);
       const sortedSites = response.data.sort((a, b) =>
         a.name.localeCompare(b.name)
       );
       setSites(sortedSites);
-      setDisplayedSites(sortedSites.slice(0, pageSize)); // Hiển thị trang đầu tiên
+      setDisplayedSites(sortedSites.slice(0, pageSize));
       setPage(1);
     } catch (error) {
-      console.error("Error details:", error.response?.data || error.message); // Log
+      console.error("Error details:", error.response?.data || error.message);
       Alert.alert("Lỗi", "Không thể tải danh sách địa điểm.");
     } finally {
       setLoading(false);
@@ -65,7 +53,6 @@ const SiteManagement = ({ navigation }) => {
     console.log("loadMoreSites - New displayed sites:", newSites.length);
   };
 
-  // Thêm địa điểm
   const addSite = async () => {
     if (!newSite.name.trim() || !newSite.address.trim() || !newSite.phone.trim()) {
       Alert.alert("Lỗi", "Tên, địa chỉ và số điện thoại không được để trống.");
@@ -82,17 +69,16 @@ const SiteManagement = ({ navigation }) => {
       });
       setNewSite({ name: "", address: "", phone: "" });
       setModalVisible(false);
-      fetchSites(); // Làm mới
+      fetchSites();
       Alert.alert("Thành công", "Thêm địa điểm thành công!");
     } catch (error) {
-      console.error("Error adding site:", error.response?.data || error.message); // Log
+      console.error("Error adding site:", error.response?.data || error.message);
       Alert.alert("Lỗi", "Không thể thêm địa điểm.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Sửa địa điểm
   const updateSite = async () => {
     if (!editSite.name.trim() || !editSite.address.trim() || !editSite.phone.trim()) {
       Alert.alert("Lỗi", "Tên, địa chỉ và số điện thoại không được để trống.");
@@ -110,17 +96,16 @@ const SiteManagement = ({ navigation }) => {
       setEditSiteId(null);
       setEditSite({ name: "", address: "", phone: "" });
       setEditModalVisible(false);
-      fetchSites(); // Làm mới
+      fetchSites();
       Alert.alert("Thành công", "Cập nhật địa điểm thành công!");
     } catch (error) {
-      console.error("Error updating site:", error.response?.data || error.message); // Log
+      console.error("Error updating site:", error.response?.data || error.message);
       Alert.alert("Lỗi", "Không thể cập nhật địa điểm.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Xóa địa điểm
   const deleteSite = async (id) => {
     Alert.alert(
       "Xác nhận",
@@ -135,10 +120,10 @@ const SiteManagement = ({ navigation }) => {
               setLoading(true);
               const token = await AsyncStorage.getItem("token");
               await authApis(token).delete(endpoints.sites(id));
-              fetchSites(); // Làm mới
+              fetchSites(); 
               Alert.alert("Thành công", "Xóa địa điểm thành công!");
             } catch (error) {
-              console.error("Error deleting site:", error.response?.data || error.message); // Log
+              console.error("Error deleting site:", error.response?.data || error.message);
               Alert.alert("Lỗi", "Không thể xóa địa điểm.");
             } finally {
               setLoading(false);
@@ -149,14 +134,12 @@ const SiteManagement = ({ navigation }) => {
     );
   };
 
-  // Mở modal chỉnh sửa
   const openEditModal = (id, name, address, phone) => {
     setEditSiteId(id);
     setEditSite({ name, address, phone });
     setEditModalVisible(true);
   };
 
-  // Hiển thị mỗi địa điểm
   const renderSite = ({ item }) => (
     <View style={styles.typeCard}>
       <View style={styles.typeInfo}>
@@ -235,7 +218,7 @@ const SiteManagement = ({ navigation }) => {
         </View>
       )}
 
-      {/* Modal thêm địa điểm */}
+      {/* Thêm */}
       <Modal
         transparent={true}
         visible={modalVisible}
@@ -282,7 +265,7 @@ const SiteManagement = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Modal chỉnh sửa địa điểm */}
+      {/* Sửa */}
       <Modal
         transparent={true}
         visible={editModalVisible}

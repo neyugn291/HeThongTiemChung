@@ -1,15 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApis, endpoints } from "../../configs/Apis";
@@ -35,7 +25,7 @@ const Contact = ({ navigation }) => {
   const fetchCurrentUser = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
-      console.log("Token:", token); // Debug token
+      console.log("Token:", token);
       if (!token) throw new Error("Không tìm thấy token.");
 
       const response = await authApis(token).get(endpoints.currentUser);
@@ -43,7 +33,7 @@ const Contact = ({ navigation }) => {
         const userData = response.data;
         await AsyncStorage.setItem("user", JSON.stringify(userData));
         console.log("Current User:", userData);
-        return userData; // Trả về dữ liệu người dùng
+        return userData;
       } else {
         throw new Error("Không thể lấy thông tin người dùng.");
       }
